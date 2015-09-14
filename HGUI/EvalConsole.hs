@@ -1,3 +1,4 @@
+{-# Language ScopedTypeVariables #-}
 module HGUI.EvalConsole where
 
 import Graphics.UI.Gtk hiding (get)
@@ -28,6 +29,7 @@ import HGUI.Evaluation.EvalState
 
 import System.Glib.UTFString
 import Control.Applicative
+import Control.Exception
 
 configEvalButton :: GuiMonad ()
 configEvalButton = ask >>= \content -> do
@@ -291,8 +293,15 @@ evalStepDown = getHGState >>= \st -> do
                     ask >>= \content -> do
                     let win = content ^. gHalWindow
                     
-                    (mmc,(prgSt'',_)) <- io $ ST.runStateT 
-                                         (evalStepExtComm nexecComm) (prgSt',win)
+                    (mmc,(prgSt'',_)) <- io $ catch
+                                               (ST.runStateT
+                                                   (evalStepExtComm nexecComm)
+                                                   (prgSt',win)
+                                               )
+                                               (\(err :: SomeException) ->
+                                                   showErrMsg win (show err) >>
+                                                   return (Nothing, (prgSt',win))
+                                               )
                     
                     case mmc of
                         Nothing -> return False

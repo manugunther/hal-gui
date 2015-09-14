@@ -6,12 +6,21 @@ module HGUI.ExtendedLang where
 
 import Hal.Lang
 
+import qualified Equ.Expr as Equ ( Expr(..) )
+import qualified Equ.PreExpr as PreEqu ( PreExpr'(Con) )
+import qualified Equ.Theories.FOL as TheoEqu ( folTrue )
+
+
 import Text.Parsec.Pos
 
 data CommPos = CommPos { begin :: SourcePos
                        , end   :: SourcePos
                        }
     deriving (Eq,Show)
+
+
+true :: Equ.Expr
+true = Equ.Expr $ PreEqu.Con TheoEqu.folTrue
 
 makeCommPos :: SourcePos -> SourcePos -> CommPos
 makeCommPos = CommPos
@@ -56,12 +65,10 @@ data ExtComm where
     deriving Show
 
 data ExtProgram where
-    ExtProg :: LIdentifier -> ExtComm -> 
-                              ExtComm -> 
-                              (CommPos,FormFun) -> ExtProgram
+    ExtProg :: LIdentifier -> ExtComm -> ExtProgram
 
 extProgramGetExtComm :: ExtProgram -> ExtComm
-extProgramGetExtComm (ExtProg _ _ c _) = c
+extProgramGetExtComm (ExtProg _ c) = c
 
 convertExtCommToComm :: ExtComm -> Comm
 convertExtCommToComm (ExtSkip _) = Skip
@@ -77,6 +84,5 @@ convertExtCommToComm (ExtSeq c c') = Seq (convertExtCommToComm c)
                                          (convertExtCommToComm c')
 
 convertExtProgToProg :: ExtProgram -> Program
-convertExtProgToProg (ExtProg vars (ExtPre _ pre) ecomms (_,pos)) = 
-                         Prog vars pre (convertExtCommToComm ecomms) pos
-convertExtProgToProg _ = error "Error en Precondición convirtiendo el programa."
+convertExtProgToProg (ExtProg vars ecomms) = 
+                         Prog vars true (convertExtCommToComm ecomms) true

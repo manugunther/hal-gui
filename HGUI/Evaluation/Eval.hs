@@ -42,7 +42,7 @@ showErrMsg mainWin msg = postGUIAsync $ do
             label <- labelNew (Nothing :: Maybe String)
             set label [ labelLabel := formatErrorMsg msg
                       , labelUseMarkup := True
-                      ] 
+                      ]
             
             readyB <- buttonNewWithLabel ("Aceptar" :: String)
             

@@ -21,21 +21,19 @@ data ExecState = ExecState { executedTracePrg  :: Maybe ExtComm
                            }
 
 makeExecState :: ExtProgram -> ExecState
-makeExecState (ExtProg vars _ comms _) = ExecState Nothing 
-                                                        (Just comms)
-                                                        (fillState initState vars)
-                                                        []
-                                                        []
+makeExecState (ExtProg vars comms) = ExecState Nothing 
+                                               (Just comms)
+                                               (fillState initState vars)
+                                               []
+                                               []
 
 makeExecStateWithPre :: ExtProgram -> ExecState
-makeExecStateWithPre (ExtProg vars pre comms _) = 
-        ExecState Nothing (Just $ ExtSeq pre comms) 
-                          (fillState initState vars) [] []
+makeExecStateWithPre (ExtProg vars comms) = 
+        ExecState Nothing (Just comms) (fillState initState vars) [] []
 
 restartExecSt :: ExecState -> ExtProgram -> ExecState
-restartExecSt (ExecState _ _ st _ _) (ExtProg _ pre c _) = 
-    ExecState Nothing (Just $ ExtSeq pre c) 
-                      (fillState initState $ takeIdentifiers st) [] []
+restartExecSt (ExecState _ _ st _ _) (ExtProg _ c) = 
+    ExecState Nothing (Just c) (fillState initState $ takeIdentifiers st) [] []
 
 undoUpdateExecState :: ExecState -> ExtComm -> HistState -> State -> ExecState
 undoUpdateExecState execSt c hprgst st = 

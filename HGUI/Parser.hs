@@ -100,16 +100,15 @@ extWhile = try $ do
            let initp = statePos st
            
            whites
-           keyword "while"
-           b <- boolexp
-           form <- formfun
            keyword "do"
+           b <- boolexp
+           keyword "->"
            c <- extComm
            keyword "od"
            
            st' <- getParserState
            let endp = statePos st'
-           return (ExtDo (makeCommPos initp endp) form b c)
+           return (ExtDo (makeCommPos initp endp) true b c)
 
 -- | Precondición
 extPrec :: ParserH ExtComm
@@ -167,11 +166,9 @@ extComm = try $ whites >> sepEndBy1 (choice extComms) semip >>= return . foldl1 
 extProgram :: ParserH ExtProgram
 extProgram = varinputs >>
              vardefs >>
-             extPrec >>= \pre ->
              extComm >>= \c ->
-             extPost >>= \postc ->
              getParserState >>= return . M.elems . pvars . stateUser >>= \vars ->
-             return $ ExtProg vars pre c postc
+             return $ ExtProg vars c
 
 -- | Función principal de parseo desde String
 parseExtPrgFromString :: String -> Either ParseError ExtProgram
