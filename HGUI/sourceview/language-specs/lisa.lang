@@ -15,43 +15,59 @@
     <definitions>
         <context id="lisa">
             <include>
-                <context id="keywords" style-ref="keyword">
+	      <define-regex id="symbolchar">
+		[-!+\\|=&amp;&gt;&lt;]
+	      </define-regex>
+	      
+	      
+              <context id="keywords" style-ref="keyword">
+		<prefix>(?&lt;!\%{symbolchar})</prefix>
+		<suffix>(?!\%{symbolchar})</suffix>
                 <keyword>varinput</keyword>
                 <keyword>vardef</keyword>
                 <keyword>while</keyword>
                 <keyword>if</keyword>
-                <keyword>then</keyword>
-                <keyword>else</keyword>
+		<keyword>fi</keyword>
+                <keyword> \-\> </keyword>
+                <keyword> \| </keyword>
                 <keyword>do</keyword>
                 <keyword>od</keyword>
                 <keyword>skip</keyword>
                 <keyword>abort</keyword>
-
-                </context>
-
-                <context id="assert" style-ref="assertion">
-                    <start>\{</start>
-                    <end>\}</end>
-                </context>
-
-                <context ref="def:decimal"/>
-
-                <context id="types" style-ref="type">
-                    <keyword>Int</keyword>
-                    <keyword>Bool</keyword>
-                </context>
-
-		 <context id="constant" style-ref="constant">
-                    <keyword>True</keyword>
-                    <keyword>False</keyword>
-                </context>
-		
-		<context id="operators" style-ref="operators">
-                    <keyword>not</keyword>
-		    <keyword> \+ </keyword>
-		    <keyword> \- </keyword>
-                </context>
-
+	      </context>
+	      
+              <context id="assert" style-ref="assertion">
+                <start>\{</start>
+                <end>\}</end>
+              </context>
+	      
+              <context ref="def:decimal"/>
+	      
+              <context id="types" style-ref="type">
+                <keyword>Int</keyword>
+                <keyword>Bool</keyword>
+              </context>
+	      
+	      <context id="constant" style-ref="constant">
+                <keyword>True</keyword>
+                <keyword>False</keyword>
+              </context>
+	      
+	      <context id="operators" style-ref="operators">
+		<prefix>(?&lt;!\%{symbolchar})</prefix>
+		<suffix>(?!\%{symbolchar})</suffix>
+                <keyword>not</keyword>
+		<keyword>\+</keyword>
+		<keyword>\-</keyword>
+		<keyword>\*</keyword>
+		<keyword>=</keyword>
+		<keyword>\/</keyword>
+		<keyword>\%</keyword>
+		<keyword>&lt;</keyword>
+		<keyword>&amp;&amp;</keyword>
+		<keyword>\|\|</keyword>
+              </context>
+	      
             </include>
         </context>
     </definitions>

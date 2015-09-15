@@ -11,7 +11,6 @@ import qualified Control.Exception as C
 
 import qualified Data.Foldable as F
 import System.FilePath.Posix
-import System.Process(runCommand)
 import Data.Maybe (isJust,fromJust)
 import Data.Text hiding (take,init,drop)
 
@@ -19,11 +18,7 @@ import HGUI.Console
 import HGUI.GState
 import HGUI.TextPage
 import HGUI.Utils
-import HGUI.Config(executableFun)
-import HGUI.ExtendedLang
 import HGUI.Parser(parseExtPrgFromString)
-
-import Hal.Verification.WeakPre(generateFunFileString)
 
 -- | En general, salvo aclaración, un archivo en este contexto es directamente
 -- un campo de texto con su respectivo nombre en la interfaz.
@@ -50,7 +45,8 @@ createNewFile = createNewFileFromLoad Nothing Nothing
 openFile :: GuiMonad ()
 openFile = ask >>= \ct -> get >>= \st ->
            let infoTV = ct ^. gInfoConsole in
-           io $ dialogLoad "Cargar programa" halFileFilter (openFile' ct st) infoTV >>
+           io $ dialogLoad "Cargar programa" halFileFilter 
+                           (openFile' ct st) infoTV >>
             return ()
     where
         openFile' :: HGReader -> HGStateRef -> Maybe TextFilePath ->
@@ -82,12 +78,18 @@ dialogLoad label fileFilter action consoleView = do
                         readFile (filename++".lisa") >>= \code ->
                         C.catch (readFile (filename++".fun") >>= return . Just)
                         (\e -> let err = show (e :: C.IOException)  in
-                                printErrorMsgIO ("Error leyendo archivo de verificación:\n" ++err) consoleView >>
-                                return Nothing)
+                               printErrorMsgIO
+                               ("Error leyendo archivo de verificación:\n" ++err)
+                               consoleView >>
+                               return Nothing
+                        )
                         >>= \mcodefun ->
                         maybe (return ()) 
-                              (\codefun -> action (Just $ pack filename) (Just (code,codefun)) >>
-                                printInfoMsgIO "Archivo cargado con éxito." consoleView)
+                              (\codefun -> action (Just $ pack filename) 
+                                                  (Just (code,codefun)) >>
+                                printInfoMsgIO "Archivo cargado con éxito."
+                                               consoleView
+                              )
                               mcodefun >>
                         widgetDestroy dialog)
                     selected 
@@ -177,20 +179,25 @@ compile = get >>= \st -> ask >>= \content ->
         let consoleTV = content ^. (gHalInfoConsole . infoConTView)
             mfile = gst ^. gFileName
         maybe (saveAtFile >> return False)
-              (\fp -> io $ C.catch (let file = fp++".lisa" in
+              (\fp -> saveFile >>
+                      io (
+                      C.catch 
+                      (let file = fp++".lisa" in
                                     readFile file >>= \code ->
-                                    eval (parseCode consoleTV code) content st)
-                      (\e -> let err = show (e :: C.IOException)  in
-                             printErrorMsgIO ("Error leyendo archivo:\n" ++err) consoleTV >>
-                             return False)
-                             )
+                                    eval (parseCode consoleTV code) content st
+                      )
+                      (\e -> let err = show (e :: C.SomeException) in
+                             printErrorMsgIO ("Error leyendo archivo:\n" ++err) 
+                             consoleTV >>
+                             return False))
+              )
               mfile
         
     where parseCode consoleTV code =
             case parseExtPrgFromString code of
-                Left er -> io (printErrorMsgIO ("Error compilando código: " ++ show er) consoleTV)
+                Left er -> io (printErrorMsgIO 
+                              ("Error compilando código: " ++ show er) consoleTV)
                            >> return False
                 Right prg -> updateHGState ((.~) gHalPrg (Just prg)) >>
                     io (printInfoMsgIO "Código compilado" consoleTV) >>
                     return True
-

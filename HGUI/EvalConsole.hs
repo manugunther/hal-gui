@@ -19,16 +19,13 @@ import Hal.Parser
 import Hal.Lang (Identifier (..), Type (..))
 
 import HGUI.ExtendedLang
+import HGUI.File
 import HGUI.Config
 import HGUI.GState
-import HGUI.Parser
-import HGUI.Utils
-import HGUI.Console
 import HGUI.Evaluation.Eval
 import HGUI.Evaluation.EvalState
 
 import System.Glib.UTFString
-import Control.Applicative
 import Control.Exception
 
 configEvalButton :: GuiMonad ()
@@ -36,7 +33,7 @@ configEvalButton = ask >>= \content -> do
             let ebutton = content ^. (gHalToolbar . evalButton)
             
             active <- io $ toggleToolButtonGetActive ebutton
-            if active 
+            if active
                 then onActive
                 else onDeactive
     where
@@ -45,7 +42,10 @@ configEvalButton = ask >>= \content -> do
             let ebox      = content ^. (gHalCommConsole . cEvalBox)
                 evalstbox = content ^. (gHalCommConsole . cEvalStateBox)
                 tv        = content ^. gTextCode
+                forkFlag  = content ^. gHalForkFlag
                 mthreadId = st ^. gForkThread
+            
+            void $ io $ tryTakeMVar forkFlag
             
             updateHGState (gHalConsoleState .~ Nothing)
             updateHGState (gHalPrg .~ Nothing)
@@ -59,17 +59,23 @@ configEvalButton = ask >>= \content -> do
         
         onActive :: GuiMonad ()
         onActive = ask >>= \content -> do
-            let ebox      = content ^. (gHalCommConsole . cEvalBox)
-                evalstbox = content ^. (gHalCommConsole . cEvalStateBox)
-                tv        = content ^. gTextCode
-                ebutton   = content ^. (gHalToolbar . evalButton)
+            let ebutton = content ^. (gHalToolbar . evalButton)
             
-            mprg <- compile'
-            case mprg of
-                Nothing -> io (toggleToolButtonSetActive ebutton False)
-                            >> return ()
-                Just prg -> do
-                    let mExecState = Just $ makeExecStateWithPre prg
+            c <- compile
+            
+            _ <- if not c
+                 then io (toggleToolButtonSetActive ebutton False) >> return ()
+                 else activateEvalFramework
+            
+            return ()
+
+activateEvalFramework :: GuiMonad ()
+activateEvalFramework = ask >>= \content -> getHGState >>= \st -> do
+                    let ebox      = content ^. (gHalCommConsole . cEvalBox)
+                        evalstbox = content ^. (gHalCommConsole . cEvalStateBox)
+                        tv        = content ^. gTextCode
+                    let Just prg = st  ^. gHalPrg
+                        mExecState = Just $ makeExecStateWithPre prg
                         stbox      = content ^. (gHalCommConsole . cStateBox)
                     
                     updateHGState (gHalConsoleState .~ mExecState)
@@ -136,36 +142,51 @@ cleanPaintLineIO tv = do
             buf   <- textViewGetBuffer tv
             table <- textBufferGetTagTable buf  
             mtag  <- textTagTableLookup table "HighlightLine"
+            mtag' <- textTagTableLookup table "HighlightComm"
+            maybe (return ()) (textTagTableRemove table) mtag'
             maybe (return ()) (textTagTableRemove table) mtag
 
 paintLine :: ExtComm -> GuiMonad ()
 paintLine eComm = ask >>= io . paintLineIO eComm
 
 paintLineIO :: ExtComm -> HGReader -> IO ()
-paintLineIO eComm content = do
-            let textV = content ^. gTextCode
-                line  = takeCommLine eComm
+paintLineIO eComm content =
+            textViewGetBuffer (content ^. gTextCode) >>= \buf ->
+            highlightLine buf >> highlightComm buf
+    where highlightLine :: TextBuffer -> IO ()
+          highlightLine buf = do
+                let line = takeBeginLComm eComm
+                
+                tagL <- textTagNew (Just $ stringToGlib "HighlightLine")
+                set tagL [ textTagParagraphBackground := evalLineColour ]
+                table <- textBufferGetTagTable buf
+                textTagTableAdd table tagL
+
+                tbStartL <- textBufferGetStartIter buf
+                void $ textIterForwardLines tbStartL (line - 1)
+                tbStartL' <- textIterCopy tbStartL
+                void $ textIterForwardLines tbStartL' 1
+
+                void $ textBufferApplyTag buf tagL tbStartL tbStartL'
+
+          highlightComm :: TextBuffer -> IO ()
+          highlightComm buf = do
+                let line = takeBeginLComm eComm
+                    bcol = takeBeginCComm eComm
+                    ecol = takeEndCComm eComm
             
-            buf     <- textViewGetBuffer textV
-            tbStart <- textBufferGetStartIter buf
-            tbEnd   <- textBufferGetEndIter buf
+                tagC <- textTagNew (Just $ stringToGlib "HighlightComm")
+                set tagC [ textTagBackground := evalCommColour ]
+                table <- textBufferGetTagTable buf
+                textTagTableAdd table tagC
+                
+                tbStartC <- textBufferGetStartIter buf
+                void $ textIterForwardLines tbStartC (line - 1)
+                tbStartC' <- textIterCopy tbStartC
+                void $ textIterForwardChars tbStartC  (bcol - 1)
+                void $ textIterForwardChars tbStartC' (ecol - 1)
             
-            tag   <- textTagNew (Just $ stringToGlib "HighlightLine")
-            set tag [ textTagParagraphBackground := evalLineColour
-                    , textTagParagraphBackgroundSet := True
-                    ]
-            
-            table <- textBufferGetTagTable buf
-            textTagTableAdd table tag
-            
-            void $ textIterForwardLines tbStart (line-1)
-            tbStart' <- textIterCopy tbStart
-            void $ textIterForwardLines tbStart' 1
-            
-            void $ textBufferApplyTag buf tag tbStart tbStart'
-            
-            void $ stringToGlib <$> textBufferGetText buf tbStart tbEnd False
-            return ()
+                void $ textBufferApplyTag buf tagC tbStartC tbStartC'
 
 configEvalConsole :: GuiMonad ()
 configEvalConsole = ask >>= \content -> get >>= \st -> io $ do
@@ -492,7 +513,7 @@ evalCont = ask >>= \content -> do
                 (Nothing,_)        -> return ()
                 (_,False)          -> return ()
                 (Just nexecComm,_) -> do 
-                                let line   = takeCommLine nexecComm
+                                let line   = takeBeginLComm nexecComm
                                     breaks = prgBreaks execSt 
                                 if (line `elem` breaks) 
                                     then return ()
@@ -575,14 +596,3 @@ delMark sbuf mark = do
                         (_,Nothing) -> return ()
                         (False,_)   -> return ()
                         (True,Just mark') -> textBufferDeleteMark sbuf mark'
-
-compile' :: GuiMonad (Maybe ExtProgram)
-compile' = ask >>= \content ->
-        do
-        let tcode = content ^. gTextCode
-        code <- getCode tcode
-        case parseExtPrgFromString code of
-            Left er -> printErrorMsg ("Error :\n" ++ show er) >> return Nothing
-            Right prg -> updateHGState ((.~) gHalPrg (Just prg)) >>
-                         printInfoMsg "Programa compilado con exito." >>
-                         return (Just prg)

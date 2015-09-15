@@ -5,6 +5,8 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards, DoAndIfThenElse #-}
 module HGUI.Evaluation.Eval where
 
+import Prelude hiding ( fst )
+
 import Graphics.UI.Gtk hiding (get,Plus,eventKeyName)
 
 import Control.Applicative
@@ -232,7 +234,8 @@ evalExtComm (ExtDo _ inv b c) = fix evalDo
             vb <- evalBExp b
             case vb of
                 Nothing    -> return Nothing
-                Just True  -> (evalExtComm (ExtSeq c (ExtAssert initPos inv))) >> f
+                Just True  -> (evalExtComm (ExtSeq c (ExtAssert initPos inv)))
+                              >> f
                 Just False -> return $ Just ()
 
                 
@@ -243,7 +246,6 @@ evalExtComm (ExtDo _ inv b c) = fix evalDo
     por los alumnos en el módulo Language.Semantics -}
 evalStepExtComm :: ExtComm -> ProgState (Maybe (Maybe ExtComm,Maybe ExtComm))
 evalStepExtComm (ExtSeq c c') = 
-    
     evalStepExtComm c >>= \mmcc' -> 
     case mmcc' of
         Nothing -> return Nothing
@@ -259,7 +261,20 @@ evalStepExtComm wc@(ExtDo _ inv b c) = do
             (_,Nothing)    -> return Nothing
             (Just True,Just _)  -> return $ Just (Nothing,Just $ ExtSeq c wc)
             (Just False,Just _) -> return $ Just (Just wc,Nothing)
-evalStepExtComm (ExtIf _ cs) = undefined
+evalStepExtComm ifc@(ExtIf _ cs) = evalif cs
+    where 
+          evalif [] = error 
+                      "Impossible: If con lista de guardas y comandos vacia."
+          evalif ((pos,b,c):bcs) = do
+                 let bc   = head bcs
+                     cont = if length bcs == 0
+                            then (Just ifc, Nothing)
+                            else (Nothing, Just $ ExtIf (fst bc) bcs)
+                 vb <- evalBExp b
+                 case vb of
+                      Nothing    -> return Nothing
+                      Just True  -> return $ Just (Nothing,Just c)
+                      Just False -> return $ Just cont
 evalStepExtComm c = evalExtComm c >>= \m ->
         case m of
             Nothing -> return Nothing

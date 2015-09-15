@@ -4,6 +4,8 @@
 {-# Language GADTs #-}
 module HGUI.ExtendedLang where
 
+import Prelude hiding (snd)
+
 import Hal.Lang
 
 import qualified Equ.Expr as Equ ( Expr(..) )
@@ -28,23 +30,65 @@ makeCommPos = CommPos
 initPos :: CommPos
 initPos = CommPos (initialPos "") (initialPos "")
 
-takeCommLine :: ExtComm -> Int
-takeCommLine (ExtSkip   pos)       = sourceLine $ begin pos
-takeCommLine (ExtAbort  pos)       = sourceLine $ begin pos
-takeCommLine (ExtPre    pos _)     = sourceLine $ begin pos
-takeCommLine (ExtAssert pos _)     = sourceLine $ begin pos
-takeCommLine (ExtIf     pos _)     = sourceLine $ begin pos
-takeCommLine (ExtIAssig pos _ _)   = sourceLine $ begin pos
-takeCommLine (ExtBAssig pos _ _)   = sourceLine $ begin pos
-takeCommLine (ExtDo     pos _ _ _) = sourceLine $ begin pos
-takeCommLine (ExtSeq c _)         = takeCommLine c
+takeBeginLComm :: ExtComm -> Int
+takeBeginLComm (ExtSkip   pos)       = sourceLine $ begin pos
+takeBeginLComm (ExtAbort  pos)       = sourceLine $ begin pos
+takeBeginLComm (ExtPre    pos _)     = sourceLine $ begin pos
+takeBeginLComm (ExtAssert pos _)     = sourceLine $ begin pos
+takeBeginLComm (ExtIf     pos _)     = sourceLine $ begin pos
+takeBeginLComm (ExtIAssig pos _ _)   = sourceLine $ begin pos
+takeBeginLComm (ExtBAssig pos _ _)   = sourceLine $ begin pos
+takeBeginLComm (ExtDo     pos _ _ _) = sourceLine $ begin pos
+takeBeginLComm (ExtSeq c _)          = takeBeginLComm c
+
+takeBeginCComm :: ExtComm -> Int
+takeBeginCComm (ExtSkip   pos)       = sourceColumn $ begin pos
+takeBeginCComm (ExtAbort  pos)       = sourceColumn $ begin pos
+takeBeginCComm (ExtPre    pos _)     = sourceColumn $ begin pos
+takeBeginCComm (ExtAssert pos _)     = sourceColumn $ begin pos
+takeBeginCComm (ExtIf     pos _)     = sourceColumn $ begin pos
+takeBeginCComm (ExtIAssig pos _ _)   = sourceColumn $ begin pos
+takeBeginCComm (ExtBAssig pos _ _)   = sourceColumn $ begin pos
+takeBeginCComm (ExtDo     pos _ _ _) = sourceColumn $ begin pos
+takeBeginCComm (ExtSeq c _)          = takeBeginCComm c
+
+takeEndCComm :: ExtComm -> Int
+takeEndCComm (ExtSkip   pos)       = sourceColumn $ end pos
+takeEndCComm (ExtAbort  pos)       = sourceColumn $ end pos
+takeEndCComm (ExtPre    pos _)     = sourceColumn $ end pos
+takeEndCComm (ExtAssert pos _)     = sourceColumn $ end pos
+takeEndCComm (ExtIf     pos _)     = sourceColumn $ end pos
+takeEndCComm (ExtIAssig pos _ _)   = sourceColumn $ end pos
+takeEndCComm (ExtBAssig pos _ _)   = sourceColumn $ end pos
+takeEndCComm (ExtDo     pos _ _ _) = sourceColumn $ end pos
+takeEndCComm (ExtSeq c _)          = takeEndCComm c
+
+takePos :: ExtComm -> CommPos
+takePos (ExtSkip   pos)       = pos
+takePos (ExtAbort  pos)       = pos
+takePos (ExtPre    pos _)     = pos
+takePos (ExtAssert pos _)     = pos
+takePos (ExtIf     pos _)     = pos
+takePos (ExtIAssig pos _ _)   = pos
+takePos (ExtBAssig pos _ _)   = pos
+takePos (ExtDo     pos _ _ _) = pos
+takePos (ExtSeq c _)          = takePos c
 
 getCommLines :: ExtComm -> [Int]
 getCommLines (ExtSeq c c')        = getCommLines c ++ getCommLines c'
-getCommLines cif@(ExtIf _ cs)     = takeCommLine cif :
-                                    (concat $ map (getCommLines . snd) cs)
-getCommLines cdo@(ExtDo _ _ _ c)  = takeCommLine cdo : getCommLines c
-getCommLines c                    = [takeCommLine c]
+getCommLines cif@(ExtIf _ cs)     = takeBeginLComm cif :
+                                    (concat $ map (getCommLines . trd) cs)
+getCommLines cdo@(ExtDo _ _ _ c)  = takeBeginLComm cdo : getCommLines c
+getCommLines c                    = [takeBeginLComm c]
+
+fst :: (CommPos,BExp,ExtComm) -> CommPos
+fst (cp,_,_) = cp
+
+snd :: (CommPos,BExp,ExtComm) -> BExp
+snd (_,b,_) = b
+
+trd :: (CommPos,BExp,ExtComm) -> ExtComm
+trd (_,_,c) = c
 
 -- Los terminos que representan los comandos con la información extra
 -- sobre en que linea se encuentran.
@@ -55,7 +99,7 @@ data ExtComm where
     ExtPre    :: CommPos -> FormFun -> ExtComm
     ExtAssert :: CommPos -> FormFun -> ExtComm
     
-    ExtIf     :: CommPos -> [(BExp,ExtComm)] -> ExtComm
+    ExtIf     :: CommPos -> [(CommPos,BExp,ExtComm)] -> ExtComm
     
     ExtIAssig :: CommPos -> Identifier -> Exp -> ExtComm
     ExtBAssig :: CommPos -> Identifier -> BExp -> ExtComm
@@ -66,3 +110,4 @@ data ExtComm where
 
 data ExtProgram where
     ExtProg :: LIdentifier -> ExtComm -> ExtProgram
+    deriving Show

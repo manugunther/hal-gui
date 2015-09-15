@@ -59,13 +59,16 @@ abortMsg :: String
 abortMsg = "Ha ocurrido un abort."
 
 evalContDelay :: Int
-evalContDelay = 500000 --microsegundos
+evalContDelay = 750000 --microsegundos
 
 formatErrorMsg :: String -> String
 formatErrorMsg msg = "<span foreground=\"red\">"++msg++"</span>"
 
 evalLineColour :: String
 evalLineColour = "#ee351de96116"
+
+evalCommColour :: String
+evalCommColour = "lightgray"
 
 -- Para el identado:
 

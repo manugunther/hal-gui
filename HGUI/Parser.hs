@@ -2,16 +2,15 @@
 module HGUI.Parser where
 
 import qualified Data.Map as M
+import Control.Applicative ( (<$>) )
 
 -- Imports Parsec
 import Text.Parsec 
 
 -- Imports de Equ
 import qualified Equ.Parser as PEqu
-import qualified Equ.Expr as Equ
 
 -- Imports de Hal
-import Hal.Lang
 import Hal.Parser
 
 -- Imports de Hal-Gui
@@ -26,6 +25,8 @@ extSingle s ec = try $ do
               _ <- sym s
               st' <- getParserState
               let endp = statePos st'
+
+              _ <- semip
               return $ ec $ makeCommPos initp endp
 
 -- | Skip
@@ -48,6 +49,8 @@ extAssignInt = try $ do
                
                st' <- getParserState
                let endp = statePos st'
+
+               _ <- semip
                return $ ExtIAssig (makeCommPos initp endp) acc iexp
 
 extAssignBool :: ParserH ExtComm
@@ -55,37 +58,41 @@ extAssignBool = try $ do
                 st <- getParserState
                 let initp = statePos st
                 
-                acc <- pboolvar  
+                acc <- pboolvar
                 oper ":="
                 bexp <- boolexp 
                 
                 st' <- getParserState
                 let endp = statePos st'
+                
+                _ <- semip
                 return $ ExtBAssig (makeCommPos initp endp) acc bexp
 
 -- |Condicional.      
 extIfthen :: ParserH ExtComm
 extIfthen = try $ do
-            st <- getParserState
-            let initp = statePos st
-            
             keyword "if" 
+
+            inib <- statePos <$> getParserState
             b <- (boolexp <?> "Expresión booleana")
+            endb <- statePos <$> getParserState
+
             keyword "->"
             c <- extComm
 
             cs <- many (try $ keyword "|" >>
-                              boolexp >>= \b->
+                              statePos <$> getParserState >>= \inibi ->
+                              boolexp >>= \bi ->
+                              statePos <$> getParserState >>= \endbi ->
                               keyword "->" >>
-                              extComm >>= \c ->
-                              return (b,c)
+                              extComm >>= \ci ->
+                              return (makeCommPos inibi endbi, bi,ci)
                        )
             
             keyword "fi"
             
-            st' <- getParserState
-            let endp = statePos st'
-            return $ ExtIf (makeCommPos initp endp) ((b,c):cs)
+            return $ ExtIf (makeCommPos inib endb) 
+                           ((makeCommPos inib endb,b,c):cs)
 
 -- | Assert
 extAssert :: ParserH ExtComm
@@ -102,61 +109,23 @@ extAssert = try $ do
 -- | Do - While
 extWhile :: ParserH ExtComm
 extWhile = try $ do
-           st <- getParserState
-           let initp = statePos st
-           
            whites
            keyword "do"
+           
+           inib <- statePos <$> getParserState
            b <- boolexp
+           endb <- statePos <$> getParserState
+           
            keyword "->"
            c <- extComm
            keyword "od"
            
-           st' <- getParserState
-           let endp = statePos st'
-           return (ExtDo (makeCommPos initp endp) true b c)
-
--- | Precondición
-extPrec :: ParserH ExtComm
-extPrec = try $ do
-          st <- getParserState
-          let initp = statePos st
-          
-          _ <- sym "{"
-          whites
-          keyword "Pre"
-          _ <- sym ":"
-          whites 
-          e <- PEqu.parsePreExpr
-          whites
-          _ <- sym "}"
-          
-          st' <- getParserState
-          let endp = statePos st'
-          return $ ExtPre (makeCommPos initp endp) (Equ.Expr e)
-
--- | Precondición
-extPost :: ParserH (CommPos,FormFun)
-extPost = try $ do
-          st <- getParserState
-          let initp = statePos st
-          
-          _ <- sym "{"
-          whites
-          keyword "Post"
-          _ <- sym ":"
-          whites 
-          e <- PEqu.parsePreExpr
-          whites
-          _ <- sym "}"
-          
-          st' <- getParserState
-          let endp = statePos st'
-          return (makeCommPos initp endp, Equ.Expr e)
+           return (ExtDo (makeCommPos inib endb) true b c)
 
 -- | Comandos del lenguaje LISA
-extComms :: [ParserH ExtComm]
-extComms = [ extSkip 
+extComms :: ParserH ExtComm
+extComms = choice $ map try
+           [ extSkip
            , extAbort
            , extAssignInt
            , extAssignBool
@@ -166,14 +135,16 @@ extComms = [ extSkip
            ]
 
 extComm :: ParserH ExtComm
-extComm = try $ whites >> sepEndBy1 (choice extComms) semip >>= return . foldl1 ExtSeq
+extComm = try $ whites >> many1 extComms >>= return . foldl1 ExtSeq
 
--- | Un programa consta de declaraciones de variables, una precondición, un comando y una postcondición 
+-- | Un programa consta de declaraciones de variables, una precondición,
+--   un comando y una postcondición 
 extProgram :: ParserH ExtProgram
 extProgram = varinputs >>
              vardefs >>
              extComm >>= \c ->
-             getParserState >>= return . M.elems . pvars . stateUser >>= \vars ->
+             eof >>
+             M.elems . pvars . stateUser <$> getParserState >>= \vars ->
              return $ ExtProg vars c
 
 -- | Función principal de parseo desde String
