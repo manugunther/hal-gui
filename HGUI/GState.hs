@@ -43,10 +43,8 @@ $(makeLenses ''HalInfoConsole)
 data HalCommConsole = HalCommConsole { _cEvalBox       :: VBox
                                      , _cEvalStateBox  :: VBox
                                      , _cStateBox      :: VBox
-                                     , _cStepUButton   :: Button
                                      , _cStepDButton   :: Button
                                      , _cContButton    :: Button
-                                     , _cExecButton    :: Button
                                      , _cBreakButton   :: Button
                                      , _cRestartButton :: Button
                                      , _cCleanButton   :: Button

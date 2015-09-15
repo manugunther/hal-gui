@@ -55,10 +55,8 @@ makeGState xml = do
         stateBox     <- builderGetObject xml castToVBox "stateBox"
         evalB        <- builderGetObject xml castToToggleToolButton "evalButton"
         
-        stepUB   <- builderGetObject xml castToButton "stepUpButton"
         stepDB   <- builderGetObject xml castToButton "stepDownButton"
         contB    <- builderGetObject xml castToButton "contButton"
-        execB    <- builderGetObject xml castToButton "execButton"
         breakB   <- builderGetObject xml castToButton "breakButton"
         restartB <- builderGetObject xml castToButton "restartButton"
         cleanB   <- builderGetObject xml castToButton "cleanButton"
@@ -77,7 +75,7 @@ makeGState xml = do
             halSymListST   = HalSymList symFrame goLeftBox scrollW symIV goRightBox
             halEditorPaned = HalEditorPaned edPaned
             halCommConsole = HalCommConsole evalBox evalStateBox stateBox
-                                            stepUB stepDB contB execB breakB 
+                                            stepDB contB breakB 
                                             restartB cleanB stopB
         
         gState <- newRef $ 
