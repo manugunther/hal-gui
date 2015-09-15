@@ -34,6 +34,9 @@ import HGUI.Config
 import HGUI.ExtendedLang
 import HGUI.Evaluation.EvalState
 
+-- Import para el proyecto de algoritmos 1
+import HGUI.Evaluation.TranslateLang
+
 showErrMsg :: Window -> String -> IO ()
 showErrMsg mainWin msg = postGUIAsync $ do
             win  <- windowNew
@@ -232,8 +235,16 @@ evalExtComm (ExtDo _ inv b c) = fix evalDo
                 Just True  -> (evalExtComm (ExtSeq c (ExtAssert initPos inv))) >> f
                 Just False -> return $ Just ()
 
+                
+                
+                
+
+{- El evaluador paso a paso utilizará la función de semántica definida
+    por los alumnos en el módulo Language.Semantics -}
 evalStepExtComm :: ExtComm -> ProgState (Maybe (Maybe ExtComm,Maybe ExtComm))
-evalStepExtComm (ExtSeq c c') = evalStepExtComm c >>= \mmcc' -> 
+evalStepExtComm (ExtSeq c c') = 
+    
+    evalStepExtComm c >>= \mmcc' -> 
     case mmcc' of
         Nothing -> return Nothing
         Just (Just rc,Nothing) -> return $ Just (Just rc ,Just c')
