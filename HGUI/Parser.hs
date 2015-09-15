@@ -71,15 +71,21 @@ extIfthen = try $ do
             
             keyword "if" 
             b <- (boolexp <?> "Expresión booleana")
-            keyword "then" 
+            keyword "->"
             c <- extComm
-            keyword "else"
-            c' <- extComm
+
+            cs <- many (try $ keyword "|" >>
+                              boolexp >>= \b->
+                              keyword "->" >>
+                              extComm >>= \c ->
+                              return (b,c)
+                       )
+            
             keyword "fi"
             
             st' <- getParserState
             let endp = statePos st'
-            return $ ExtIf (makeCommPos initp endp) b c c'
+            return $ ExtIf (makeCommPos initp endp) ((b,c):cs)
 
 -- | Assert
 extAssert :: ParserH ExtComm

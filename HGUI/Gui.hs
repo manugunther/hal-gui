@@ -107,7 +107,6 @@ configToolBarButtons xml = ask >>= \content -> get >>= \st ->
         openFButton     <- bGetObject "openHFileButton"
         saveFButton     <- bGetObject "saveHFileButton"
         saveAtFButton   <- bGetObject "saveHFileAtButton"
-        proofOFButton   <- bGetObject "proofOHFileButton"
         compileMButton  <- bGetObject "compileHModuleButton"
         evaButton       <- bGetObject "evalButton"
         symFButton      <- bGetObject "symHFrameButton"
@@ -116,7 +115,6 @@ configToolBarButtons xml = ask >>= \content -> get >>= \st ->
         void $ onTBClicked openFButton    (eval openFile content st)
         void $ onTBClicked saveFButton    (eval saveFile content st)
         void $ onTBClicked saveAtFButton  (eval saveAtFile content st)
-        void $ onTBClicked proofOFButton  (eval genProofObligations content st)
         void $ onTBClicked compileMButton (eval compile content st >> return ())
         void $ onTBClicked evaButton      (eval configEvalButton content st)
         void $ onTBClicked symFButton     (eval configSymFrameButton content st)

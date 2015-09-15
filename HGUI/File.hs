@@ -46,22 +46,6 @@ createNewFileFromLoad mfp mcode =
 createNewFile :: GuiMonad ()
 createNewFile = createNewFileFromLoad Nothing Nothing
 
-genProofObligations :: GuiMonad ()
-genProofObligations = getHGState >>= \st ->
-    do
-        let mprg = st ^. gHalPrg
-        let mfile = st ^. gFileName
-        
-        maybe (compile >>= flip when genProofObligations)
-              (\prg ->
-                maybe (printErrorMsg "El archivo no está guardado")
-                      (\fname -> io (generateFunFileString (takeFileName fname) $ convertExtProgToProg prg) >>=
-                       \strfun -> io (writeFile (fname++".fun") strfun) >>
-                       io (runCommand (executableFun ++ " " ++ fname ++".fun")) >> return ()
-                       )
-                      mfile)
-              mprg
-
 -- | Función para cargar un archivo.
 openFile :: GuiMonad ()
 openFile = ask >>= \ct -> get >>= \st ->

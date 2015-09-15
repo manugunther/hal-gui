@@ -200,11 +200,7 @@ evalExtComm (ExtAbort _) = ST.get >>= \(_,win) ->
                            liftIO (showErrMsg win abortMsg) >> return Nothing
 evalExtComm (ExtAssert _ b) = evalExprFun b False
 evalExtComm (ExtPre _ f) = evalExprFun f True
-evalExtComm (ExtIf _ b c c') = evalBExp b >>= \vb ->
-                    case vb of
-                        Nothing    -> return Nothing
-                        Just True  -> evalExtComm c
-                        Just False -> evalExtComm c'
+evalExtComm (ExtIf _ cs) = undefined
 evalExtComm (ExtIAssig _ a e) = do 
             mevalE <- evalExp e
             case mevalE of
@@ -252,12 +248,7 @@ evalStepExtComm wc@(ExtDo _ inv b c) = do
             (_,Nothing)    -> return Nothing
             (Just True,Just _)  -> return $ Just (Nothing,Just $ ExtSeq c wc)
             (Just False,Just _) -> return $ Just (Just wc,Nothing)
-evalStepExtComm (ExtIf _ b c c') = do
-        vb <- evalBExp b
-        case vb of
-            Nothing    -> return Nothing
-            Just True  -> return $ Just (Nothing,Just c)
-            Just False -> return $ Just (Nothing,Just c')
+evalStepExtComm (ExtIf _ cs) = undefined
 evalStepExtComm c = evalExtComm c >>= \m ->
         case m of
             Nothing -> return Nothing
