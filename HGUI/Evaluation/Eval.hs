@@ -2,7 +2,8 @@
     
     Para evaluar asumimos el programa typechekeo sin problemas.
 -}
-{-# LANGUAGE OverloadedStrings, RecordWildCards, DoAndIfThenElse #-}
+{-# LANGUAGE ScopedTypeVariables, OverloadedStrings, 
+             RecordWildCards, DoAndIfThenElse #-}
 module HGUI.Evaluation.Eval where
 
 import qualified Prelude as Pre
@@ -11,6 +12,7 @@ import Prelude hiding ( fst )
 import Graphics.UI.Gtk hiding (get,Plus,eventKeyName)
 
 import Control.Applicative
+import Control.Exception
 import Control.Monad.IO.Class (liftIO)
 import qualified Control.Monad.Trans.State as ST (get,put)
 import Control.Monad.Fix (fix)
@@ -39,6 +41,7 @@ import HGUI.Evaluation.EvalState
 
 -- Import para el proyecto de algoritmos 1
 import HGUI.Evaluation.TranslateLang
+import qualified Language.Syntax as AS
 import qualified Language.Semantics as ASem
 
 showErrMsg :: Window -> String -> IO ()
@@ -207,7 +210,7 @@ evalExtComm (ExtAbort _) = ST.get >>= \(_,win) ->
                            liftIO (showErrMsg win abortMsg) >> return Nothing
 evalExtComm (ExtAssert _ b) = evalExprFun b False
 evalExtComm (ExtPre _ f) = evalExprFun f True
-evalExtComm (ExtIf _ cs) = undefined
+evalExtComm (ExtIf _ _) = undefined
 evalExtComm (ExtIAssig _ a e) = do 
             mevalE <- evalExp e
             case mevalE of
@@ -245,17 +248,27 @@ evalStepExtComm :: ExtComm -> ProgState (Maybe (Maybe ExtComm,Maybe ExtComm))
 evalStepExtComm comm = 
     do
         (state,win) <- ST.get
-        let stateTuples  = vars state
+        let stateTuples = vars state
             stmt        = ecToSyntax comm
             st          = stHalToSt stateTuples
-            (st',cont)  = ASem.semStatement stmt st
-            stateTuples' = stToStHal st' stateTuples
+            
+        (st',cont)   <- evalSem win stmt st
+        let stateTuples' = stToStHal st' stateTuples
+        
         expectedN <- nextCommand comm
         let next = contToMEC cont expectedN stateTuples
+        
         ST.put (State { vars = stateTuples' },win)
-        return $ Just (Nothing,next)
-            
-    
+        return $ Just (Just undefined,next)
+    where
+        evalSem :: Window -> AS.Statement -> ASem.State ->
+                   ProgState (ASem.State,ASem.Continuation)
+        evalSem win stmt st = liftIO $
+                  catch (return $ ASem.semStatement stmt st)
+                        (\(e :: SomeException) ->
+                             showErrMsg win (show e) >>
+                             return (st,ASem.Finish)
+                        )
 
 {- Dado un comando devuelve el siguiente que debe ejecutarse, si existe -}
 nextCommand :: ExtComm -> ProgState (Maybe ExtComm)
@@ -264,17 +277,17 @@ nextCommand (ExtSeq c c') =
     case mec of
         Nothing -> return $ Just c'
         Just nc -> return $ Just $ ExtSeq nc c'
-nextCommand wc@(ExtDo pos _ b c) = do
+nextCommand wc@(ExtDo _ _ b c) = do
         vb   <- evalBExp b
         case vb of
             Nothing     -> error ("Error evaluando " ++ show b)
             (Just True)  -> return $ Just $ ExtSeq c wc
             (Just False) -> return Nothing
-nextCommand ifc@(ExtIf _ cs) = evalif cs
+nextCommand (ExtIf _ cs) = evalif cs
     where 
           evalif [] = error 
                       "Impossible: If con lista de guardas y comandos vacia."
-          evalif ((pos,b,c):bcs) = do
+          evalif ((_,b,c):bcs) = do
                  let bc   = head bcs
                      cont = if length bcs == 0
                             then Nothing
@@ -284,4 +297,4 @@ nextCommand ifc@(ExtIf _ cs) = evalif cs
                       Nothing    -> error ("Error evaluando " ++ show b)
                       Just True  -> return $ Just c
                       Just False -> return $ cont
-nextCommand c = return Nothing
+nextCommand _ = return Nothing

@@ -114,14 +114,23 @@ startStateView stBox st = io $ do
 
 updateStateView :: State -> GuiMonad ()
 updateStateView prgSt = 
-                ask >>= \content -> do
-                let stBox = content ^. (gHalCommConsole . cStateBox)
-                childs <- io $ containerGetChildren stBox
-                io $ postGUIAsync $ forM_ (zip childs (vars prgSt)) updValue
+              ask >>= \content -> do
+              let stBox = content ^. (gHalCommConsole . cStateBox)
+                  win   = content ^. gHalWindow
+              childs <- io $ containerGetChildren stBox
+              io $ postGUIAsync $ forM_ (zip childs (vars prgSt)) (updValue win)
     where
-        updValue :: (Widget,StateTuple) -> IO ()
-        updValue (w,BoolVar i mv) = updateValue' w i mv
-        updValue (w,IntVar  i mv) = updateValue' w i mv
+        updValue :: Window -> (Widget,StateTuple) -> IO ()
+        updValue win (w,BoolVar i mv) = catch (updateValue' w i mv)
+                                              (\(e :: SomeException) ->
+                                                   showErrMsg win (show e) >>
+                                                   return ()
+                                              )
+        updValue win (w,IntVar  i mv) = catch (updateValue' w i mv)
+                                              (\(e :: SomeException) ->
+                                                   showErrMsg win (show e) >>
+                                                   return ()
+                                              )
         updateValue' :: Show a => Widget -> Identifier -> Maybe a -> IO ()
         updateValue' w i mv = do
                 let hb = castToHBox w
@@ -289,16 +298,24 @@ forkEvalStepDown fflag content stref = do
             else return ()
 
 evalStepDown :: GuiMonad Bool
-evalStepDown = getHGState >>= \st -> do
+evalStepDown = getHGState >>= \st -> ask >>= \content -> do
     let Just execSt = st ^. gHalConsoleState
         prgSt       = prgState execSt
         mexecComm   = executedTracePrg execSt
-        mnexecComm  = nexecutedTracePrg execSt
+        
+        win = content ^. gHalWindow
+    
     flagSt <- io $ newEmptyMVar
     
-    maybe (takeInputs prgSt flagSt)
-          (const $ io $ putMVar flagSt (Just prgSt)) mexecComm
+    mnexecComm <- io $ catch ( return $ nexecutedTracePrg execSt )
+                             (\(err :: SomeException) ->
+                                    showErrMsg win (show err) >>
+                                    return Nothing
+                             )
     
+    maybe (takeInputs prgSt flagSt)
+          (const $ io $ putMVar flagSt (Just prgSt)) mexecComm    
+
     mPrgSt <- io $ takeMVar flagSt
     
     case mPrgSt of
@@ -306,9 +323,7 @@ evalStepDown = getHGState >>= \st -> do
         Just prgSt' -> do
             case mnexecComm of
                 Nothing -> return True
-                Just nexecComm -> 
-                    ask >>= \content -> do
-                    let win = content ^. gHalWindow
+                Just nexecComm -> do
                     
                     (mmc,(prgSt'',_)) <- io $ catch
                                                (ST.runStateT
@@ -323,17 +338,27 @@ evalStepDown = getHGState >>= \st -> do
                     case mmc of
                         Nothing -> return False
                         Just mc -> do
-                            let execSt' = updateExecState 
+                            let execSt' = updateExecState
                                                     execSt mc prgSt' prgSt''
                                 headC   = headNExecComm execSt'
                                 tv      = content ^. gTextCode
+
                             updateHGState ((.~) gHalConsoleState (Just execSt'))
-                            io $ postGUIAsync $ cleanPaintLineIO $ 
+                            io $ postGUIAsync $ cleanPaintLineIO $
                                                 castToTextView tv
+                            
                             updateStateView prgSt''
-                            maybe (return ()) 
-                                  (io . postGUIAsync . flip paintLineIO content)
-                                  headC
+
+                            io $ catch ( maybe (return ())
+                                               (io . postGUIAsync .
+                                                     flip paintLineIO content
+                                               ) headC
+                                       ) (\(err :: SomeException) ->
+                                               putStrLn "PaintLine" >>
+                                               showErrMsg win (show err) >>
+                                               return ()
+                                         )
+                            
                             return True
 
 takeInputs :: State -> MVar (Maybe State) -> GuiMonad ()

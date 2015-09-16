@@ -3,7 +3,7 @@ module HGUI.Evaluation.TranslateLang where
 
 import HGUI.ExtendedLang
 import Hal.Lang
-import HGUI.Evaluation.EvalState ( State (..) , StateTuple (..) )
+import HGUI.Evaluation.EvalState ( StateTuple (..) )
 
 import qualified Language.Syntax as AS
 import qualified Language.Semantics as ASem
@@ -19,81 +19,75 @@ syntaxToBE :: AS.BoolExpr -> VarToId -> BExp
 syntaxToBE (AS.ConstB b) _  = BCon b
 syntaxToBE (AS.VB v)     m  = BoolId (lookupVar v m)
 syntaxToBE (AS.And b1 b2) m = 
-    let (b1',b2') = (syntaxToBE b1 m, syntaxToBE b2 m)
-    in
-        BBOp And b1' b2'
+                   let (b1',b2') = (syntaxToBE b1 m, syntaxToBE b2 m)
+                   in BBOp And b1' b2'
 syntaxToBE (AS.Or b1 b2) m =
-    let (b1',b2') = (syntaxToBE b1 m, syntaxToBE b2 m)
-    in
-        BBOp Or b1' b2'
+                   let (b1',b2') = (syntaxToBE b1 m, syntaxToBE b2 m)
+                   in BBOp Or b1' b2'
 syntaxToBE (AS.Not b) m =
-    let b' = syntaxToBE b m
-    in
-        BUOp Not b'
+                   let b' = syntaxToBE b m
+                   in BUOp Not b'
 syntaxToBE (AS.Equal e1 e2) m =
-    let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
-    in
-        BRel Equal e1' e2'
+                   let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
+                   in BRel Equal e1' e2'
 syntaxToBE (AS.Less e1 e2) m =
-    let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
-    in
-        BRel Lt e1' e2'
+                   let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
+                   in BRel Lt e1' e2'
         
 syntaxToIE :: AS.IntExpr -> VarToId -> Exp
-syntaxToIE (AS.ConstI i) m = ICon i
+syntaxToIE (AS.ConstI i) _ = ICon i
 syntaxToIE (AS.VI v)     m = IntId (lookupVar v m)
-syntaxToIE (AS.Neg e) m    = 
-    let e' = syntaxToIE e m
-    in
-        IBOp Substr (ICon 0) e'
+syntaxToIE (AS.Neg e)    m = let e' = syntaxToIE e m
+                             in IBOp Substr (ICon 0) e'
 syntaxToIE (AS.Plus e1 e2) m =
-    let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
-    in
-        IBOp Plus e1' e2'
+                       let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
+                       in IBOp Plus e1' e2'
 syntaxToIE (AS.Prod e1 e2) m =
-    let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
-    in
-        IBOp Times e1' e2'
+                       let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
+                       in IBOp Times e1' e2'
 syntaxToIE (AS.Div e1 e2) m =
-    let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
-    in
-        IBOp Div e1' e2'
+                       let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
+                       in IBOp Div e1' e2'
 syntaxToIE (AS.Mod e1 e2) m =
-    let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
-    in
-        IBOp Mod e1' e2'
+                       let (e1',e2') = (syntaxToIE e1 m, syntaxToIE e2 m)
+                       in IBOp Mod e1' e2'
       
 lookupVar :: AS.VarName -> VarToId -> Identifier
 lookupVar v [] = error $ "La variable " ++ v ++ " no existe."
-lookupVar v (IntVar ident _ : rest) | v == unpack (idName ident) = ident 
-                                    | otherwise          = lookupVar v rest
+lookupVar v (IntVar ident _ : rest)  | v == unpack (idName ident) = ident 
+                                     | otherwise          = lookupVar v rest
 lookupVar v (BoolVar ident _ : rest) | v == unpack (idName ident) = ident 
                                      | otherwise          = lookupVar v rest
-      
-      
+
 -- Chequea que el comando que se devuelve desde el proyecto
 -- corresponda con el que deberia ser.
 syntaxToEC :: AS.Statement -> ExtComm -> VarToId -> ExtComm
-syntaxToEC AS.Skip (ExtSkip p) m = ExtSkip p
-syntaxToEC (AS.Assign (AS.Var v AS.BoolT) (AS.BExpr e)) 
-           (ExtBAssig p i be) m = 
-    ExtBAssig p (lookupVar v m) (syntaxToBE e m)
-syntaxToEC (AS.Assign (AS.Var v AS.IntT) (AS.IExpr e)) 
-           (ExtIAssig p _ _) m = 
-    ExtIAssig p (lookupVar v m) (syntaxToIE e m)
+syntaxToEC AS.Skip (ExtSkip p) _ = ExtSkip p
+syntaxToEC (AS.Assign (AS.Var v AS.BoolT) (AS.BExpr e)) (ExtBAssig p _ _) m = 
+                             ExtBAssig p (lookupVar v m) (syntaxToBE e m)
+
+syntaxToEC (AS.Assign (AS.Var v AS.IntT) (AS.IExpr e)) (ExtIAssig p _ _) m = 
+                             ExtIAssig p (lookupVar v m) (syntaxToIE e m)
+
 syntaxToEC (AS.Seq s1 s2) (ExtSeq s1' s2') m =
-    ExtSeq (syntaxToEC s1 s1' m) (syntaxToEC s2 s2' m)
-syntaxToEC (AS.Do be s) (ExtDo p f be' s') m =
-    ExtDo p f (syntaxToBE be m) (syntaxToEC s s' m)
+                             ExtSeq (syntaxToEC s1 s1' m) (syntaxToEC s2 s2' m)
+
+syntaxToEC (AS.Do be s) (ExtDo p f _ s') m =
+                             ExtDo p f (syntaxToBE be m) (syntaxToEC s s' m)
+
 syntaxToEC (AS.If cs) (ExtIf p ecs) m = ExtIf p (ifCont cs ecs m)
-    where ifCont :: [(AS.BoolExpr,AS.Statement)] -> [(CommPos,BExp,ExtComm)] -> 
+    where ifCont :: [(AS.BoolExpr,AS.Statement)] -> [(CommPos,BExp,ExtComm)] ->
                     VarToId -> [(CommPos,BExp,ExtComm)]
           ifCont [] [] _ = []
-          ifCont ((be,s):cs) ((p,_,es):ecs) m = 
-              (p,syntaxToBE be m,syntaxToEC s es m) : (ifCont cs ecs m)
-    
-syntaxToEC _ _ _ = error ("La definición de continuación de ejecución "
-                        ++ "no es la correcta.")
+          ifCont ((be,s):cs') ((p',_,es):ecs') m' =
+              (p',syntaxToBE be m',syntaxToEC s es m') : (ifCont cs' ecs' m')
+          ifCont _ _ _ = error $ unwords [ "La definición de continuación de" 
+                                         , "ejecución no es la correcta."
+                                         ]
+
+syntaxToEC _ _ _ = error $ unwords [ "La definición de continuación de" 
+                                   , "ejecución no es la correcta."
+                                   ]
 
 contToMEC :: ASem.Continuation -> Maybe ExtComm -> VarToId -> Maybe ExtComm
 contToMEC (ASem.ToExec stmt) (Just comm) m = Just (syntaxToEC stmt comm m)
@@ -169,7 +163,7 @@ stToStHal (sti,stb) m =
                       in
                           (IntVar ident (Just i) : st)
           fb :: [StateTuple] -> AS.VarName -> Bool -> [StateTuple]
-          fb st v b = let ident = lookupVar v m 
+          fb st v b = let ident = lookupVar v m
                       in
                           (BoolVar ident (Just b) : st)
         

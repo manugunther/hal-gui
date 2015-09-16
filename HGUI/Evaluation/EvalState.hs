@@ -45,9 +45,9 @@ undoUpdateExecState execSt c hprgst st =
             ExecState mc Nothing _ _ bs ->
                 ExecState mc (Just $ c) st hprgst bs
 
-updateExecState :: ExecState -> (Maybe ExtComm,Maybe ExtComm) -> State -> 
+updateExecState :: ExecState -> (Maybe ExtComm,Maybe ExtComm) -> State ->
                    State -> ExecState
-updateExecState execSt (mc,mc') oldst st = 
+updateExecState execSt (mc,mc') oldst st =
         case (execSt,mc) of
             (ExecState Nothing _ _ hstprg bs,Nothing) -> 
                     ExecState mc mc' st hstprg bs
