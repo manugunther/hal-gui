@@ -5,6 +5,7 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards, DoAndIfThenElse #-}
 module HGUI.Evaluation.Eval where
 
+import qualified Prelude as Pre
 import Prelude hiding ( fst )
 
 import Graphics.UI.Gtk hiding (get,Plus,eventKeyName)
@@ -38,6 +39,7 @@ import HGUI.Evaluation.EvalState
 
 -- Import para el proyecto de algoritmos 1
 import HGUI.Evaluation.TranslateLang
+import qualified Language.Semantics as ASem
 
 showErrMsg :: Window -> String -> IO ()
 showErrMsg mainWin msg = postGUIAsync $ do
@@ -239,43 +241,47 @@ evalExtComm (ExtDo _ inv b c) = fix evalDo
                 Just False -> return $ Just ()
 
                 
-                
-                
-
-{- El evaluador paso a paso utilizará la función de semántica definida
-    por los alumnos en el módulo Language.Semantics -}
 evalStepExtComm :: ExtComm -> ProgState (Maybe (Maybe ExtComm,Maybe ExtComm))
-evalStepExtComm (ExtSeq c c') = 
-    evalStepExtComm c >>= \mmcc' -> 
-    case mmcc' of
-        Nothing -> return Nothing
-        Just (Just rc,Nothing) -> return $ Just (Just rc ,Just c')
-        Just (Just rc,Just lc) -> return $ Just (Just rc ,Just (ExtSeq lc c'))
-        Just (Nothing,Just lc) -> return $ Just (Nothing,Just (ExtSeq lc c'))
-        Just (Nothing,Nothing) -> error "Impossible"
-evalStepExtComm wc@(ExtDo _ inv b c) = do
+evalStepExtComm comm = 
+    do
+        (state,win) <- ST.get
+        let stateTuples  = vars state
+            stmt        = ecToSyntax comm
+            st          = stHalToSt stateTuples
+            (st',cont)  = ASem.semStatement stmt st
+            stateTuples' = stToStHal st' stateTuples
+        expectedN <- nextCommand comm
+        let next = contToMEC cont expectedN stateTuples
+        ST.put (State { vars = stateTuples' },win)
+        return $ Just (Nothing,next)
+            
+    
+
+{- Dado un comando devuelve el siguiente que debe ejecutarse, si existe -}
+nextCommand :: ExtComm -> ProgState (Maybe ExtComm)
+nextCommand (ExtSeq c c') = 
+    nextCommand c >>= \mec ->
+    case mec of
+        Nothing -> return $ Just c'
+        Just nc -> return $ Just $ ExtSeq nc c'
+nextCommand wc@(ExtDo pos _ b c) = do
         vb   <- evalBExp b
-        vinv <- evalExprFun inv False
-        case (vb,vinv) of
-            (Nothing,_)    -> return Nothing
-            (_,Nothing)    -> return Nothing
-            (Just True,Just _)  -> return $ Just (Nothing,Just $ ExtSeq c wc)
-            (Just False,Just _) -> return $ Just (Just wc,Nothing)
-evalStepExtComm ifc@(ExtIf _ cs) = evalif cs
+        case vb of
+            Nothing     -> error ("Error evaluando " ++ show b)
+            (Just True)  -> return $ Just $ ExtSeq c wc
+            (Just False) -> return Nothing
+nextCommand ifc@(ExtIf _ cs) = evalif cs
     where 
           evalif [] = error 
                       "Impossible: If con lista de guardas y comandos vacia."
           evalif ((pos,b,c):bcs) = do
                  let bc   = head bcs
                      cont = if length bcs == 0
-                            then (Just ifc, Nothing)
-                            else (Nothing, Just $ ExtIf (fst bc) bcs)
+                            then Nothing
+                            else Just $ ExtIf (fst bc) bcs
                  vb <- evalBExp b
                  case vb of
-                      Nothing    -> return Nothing
-                      Just True  -> return $ Just (Nothing,Just c)
-                      Just False -> return $ Just cont
-evalStepExtComm c = evalExtComm c >>= \m ->
-        case m of
-            Nothing -> return Nothing
-            Just _  -> return (Just (Just c,Nothing))
+                      Nothing    -> error ("Error evaluando " ++ show b)
+                      Just True  -> return $ Just c
+                      Just False -> return $ cont
+nextCommand c = return Nothing

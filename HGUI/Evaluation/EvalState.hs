@@ -11,6 +11,8 @@ import Hal.Lang
 -- Imports de Hal-Gui
 import HGUI.ExtendedLang
 
+import Language.Semantics (defaultIntValue , defaultBoolValue)
+
 type HistState = [(ExtComm,State)]
 
 data ExecState = ExecState { executedTracePrg  :: Maybe ExtComm
@@ -166,5 +168,5 @@ fillState st vars = st {vars = map makeVar vars}
 
 makeVar :: Identifier -> StateTuple
 makeVar i@(Identifier {..}) = case idDataType of
-                                IntTy  -> IntVar  i Nothing
-                                BoolTy -> BoolVar i Nothing
+                                IntTy  -> IntVar  i (Just defaultIntValue)
+                                BoolTy -> BoolVar i (Just defaultBoolValue)

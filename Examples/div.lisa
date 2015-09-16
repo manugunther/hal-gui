@@ -3,7 +3,6 @@ vardef b : Bool;
 vardef q : Int;
 
 q := 0;
-b := True;
 
 do (q < 10) ->
     
