@@ -45,12 +45,19 @@ import qualified Language.Syntax as AS
 import qualified Language.Semantics as ASem
 
 showErrMsg :: Window -> String -> IO ()
-showErrMsg mainWin msg = postGUIAsync $ do
+showErrMsg = showMsg formatErrorMsg
+
+showOutputMsg :: Window -> String -> IO ()
+showOutputMsg win str = showMsg formatOutputMsg win
+                        ("El resultado de la evaluación es: " ++ str)
+
+showMsg :: (String -> String) -> Window -> String -> IO ()
+showMsg format mainWin msg = postGUIAsync $ do
             win  <- windowNew
             vbox <- vBoxNew False 0
             
             label <- labelNew (Nothing :: Maybe String)
-            set label [ labelLabel := formatErrorMsg msg
+            set label [ labelLabel := format msg
                       , labelUseMarkup := True
                       ]
             
@@ -117,8 +124,10 @@ evalExp (IntId i) = do
         getValue :: Identifier -> [StateTuple] -> ProgState (Maybe Int)
         getValue iden idSts = 
                 case L.find (==(IntVar iden Nothing)) idSts of
-                    Nothing -> error "Imposible, siempre encontramos una variable."
-                    Just (BoolVar _ _) -> error "Imposible, siempre la variable es entera."
+                    Nothing ->
+                            error "Imposible, siempre encontramos una variable."
+                    Just (BoolVar _ _) ->
+                         error "Imposible, siempre la variable es entera."
                     Just (IntVar _ mv) -> return mv
 
 -- | Evaluador de expresiones boleanas.
@@ -139,8 +148,10 @@ evalBExp (BoolId i) = do
         getValue :: Identifier -> [StateTuple] -> ProgState (Maybe Bool)
         getValue iden idSts = 
             case L.find (==(BoolVar iden Nothing)) idSts of
-                Nothing -> error "Imposible, siempre encontramos una variable."
-                Just (IntVar _ _) -> error "Imposible, siempre la variable es booleana."
+                Nothing ->
+                        error "Imposible, siempre encontramos una variable."
+                Just (IntVar _ _) ->
+                     error "Imposible, siempre la variable es booleana."
                 Just (BoolVar _ mv) -> return mv
 
 -- | Actualiza el valor de un identificador en una tupla del estado.
@@ -211,6 +222,7 @@ evalExtComm (ExtAbort _) = ST.get >>= \(_,win) ->
 evalExtComm (ExtAssert _ b) = evalExprFun b False
 evalExtComm (ExtPre _ f) = evalExprFun f True
 evalExtComm (ExtIf _ _) = undefined
+evalExtComm (ExtEval _) = undefined
 evalExtComm (ExtIAssig _ a e) = do 
             mevalE <- evalExp e
             case mevalE of
@@ -245,8 +257,58 @@ evalExtComm (ExtDo _ inv b c) = fix evalDo
 
                 
 evalStepExtComm :: ExtComm -> ProgState (Maybe (Maybe ExtComm,Maybe ExtComm))
-evalStepExtComm comm = 
-    do
+evalStepExtComm (ExtEval toEs) = do
+         (state,win) <- ST.get
+         case toEs of
+             ((Left (_,ie)):toEs') -> do
+                   let stateTuples = vars state
+                       expr        = ieToSyntax ie
+                       st          = stHalToSt stateTuples
+                       toEs''      = if length toEs' == 0
+                                     then Nothing
+                                     else Just $ ExtEval toEs'
+                   
+                   mi <- evalI win expr st
+                   
+                   maybe (return (Just (Just undefined, Nothing)))
+                         (\i -> 
+                          liftIO (showOutputMsg win (show i)) >>
+                          return (Just (Just undefined, toEs''))
+                         ) mi
+             ((Right (_,be)):toEs') -> do
+                   let stateTuples = vars state
+                       expr        = beToSyntax be
+                       st          = stHalToSt stateTuples
+                       toEs''      = if length toEs' == 0
+                                     then Nothing
+                                     else Just $ ExtEval toEs'
+            
+                   mb <- evalB win expr st
+                   
+                   maybe (return (Just (Just undefined, Nothing)))
+                         (\b -> 
+                          liftIO (showOutputMsg win (show b)) >>
+                          return (Just (Just undefined, toEs''))
+                         ) mb
+             _ -> error "ExtEval []: Imposible"
+    where
+        evalB :: Window -> AS.BoolExpr -> ASem.State ->
+                 ProgState (Maybe Bool)
+        evalB win be st = liftIO $
+                  catch (return $ Just $! ASem.semBExpr be st)
+                        (\(e :: SomeException) ->
+                             showErrMsg win (show e) >>
+                             return Nothing
+                        )
+        evalI :: Window -> AS.IntExpr -> ASem.State ->
+                 ProgState (Maybe Int)
+        evalI win ie (st,_) = liftIO $
+                  catch (return $ Just $! ASem.semIExpr ie st)
+                        (\(e :: SomeException) ->
+                             showErrMsg win (show e) >>
+                             return Nothing
+                        )
+evalStepExtComm comm = do
         (state,win) <- ST.get
         let stateTuples = vars state
             stmt        = ecToSyntax comm

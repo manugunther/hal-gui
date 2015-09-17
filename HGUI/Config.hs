@@ -64,6 +64,9 @@ evalContDelay = 750000 --microsegundos
 formatErrorMsg :: String -> String
 formatErrorMsg msg = "<span foreground=\"red\">"++msg++"</span>"
 
+formatOutputMsg :: String -> String
+formatOutputMsg msg = "<span foreground=\"blue\">"++msg++"</span>"
+
 evalLineColour :: String
 evalLineColour = "#ee351de96116"
 

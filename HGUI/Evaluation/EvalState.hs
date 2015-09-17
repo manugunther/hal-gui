@@ -28,14 +28,25 @@ makeExecState (ExtProg vars comms) = ExecState Nothing
                                                (fillState initState vars)
                                                []
                                                []
+makeExecState (ExtEvalProg vars eteval) = ExecState Nothing 
+                                               (Just $ ExtEval eteval)
+                                               (fillState initState vars)
+                                               []
+                                               []
 
 makeExecStateWithPre :: ExtProgram -> ExecState
 makeExecStateWithPre (ExtProg vars comms) = 
         ExecState Nothing (Just comms) (fillState initState vars) [] []
+makeExecStateWithPre (ExtEvalProg vars toEval) = 
+        ExecState Nothing (Just $ ExtEval toEval)
+                          (fillState initState vars) [] []
 
 restartExecSt :: ExecState -> ExtProgram -> ExecState
 restartExecSt (ExecState _ _ st _ _) (ExtProg _ c) = 
     ExecState Nothing (Just c) (fillState initState $ takeIdentifiers st) [] []
+restartExecSt (ExecState _ _ st _ _) (ExtEvalProg _ ete) =
+    ExecState Nothing (Just $ ExtEval ete) 
+                      (fillState initState $ takeIdentifiers st) [] []
 
 undoUpdateExecState :: ExecState -> ExtComm -> HistState -> State -> ExecState
 undoUpdateExecState execSt c hprgst st = 

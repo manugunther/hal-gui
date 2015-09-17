@@ -39,29 +39,39 @@ takeBeginLComm (ExtIf     pos _)     = sourceLine $ begin pos
 takeBeginLComm (ExtIAssig pos _ _)   = sourceLine $ begin pos
 takeBeginLComm (ExtBAssig pos _ _)   = sourceLine $ begin pos
 takeBeginLComm (ExtDo     pos _ _ _) = sourceLine $ begin pos
+takeBeginLComm (ExtEval  (toE:_))    = sourceLine $ begin (extEvalPos toE)
 takeBeginLComm (ExtSeq c _)          = takeBeginLComm c
+takeBeginLComm _          = error "takeBeginLComm: Imposible"
 
 takeBeginCComm :: ExtComm -> Int
-takeBeginCComm (ExtSkip   pos)       = sourceColumn $ begin pos
-takeBeginCComm (ExtAbort  pos)       = sourceColumn $ begin pos
-takeBeginCComm (ExtPre    pos _)     = sourceColumn $ begin pos
-takeBeginCComm (ExtAssert pos _)     = sourceColumn $ begin pos
-takeBeginCComm (ExtIf     pos _)     = sourceColumn $ begin pos
-takeBeginCComm (ExtIAssig pos _ _)   = sourceColumn $ begin pos
-takeBeginCComm (ExtBAssig pos _ _)   = sourceColumn $ begin pos
-takeBeginCComm (ExtDo     pos _ _ _) = sourceColumn $ begin pos
-takeBeginCComm (ExtSeq c _)          = takeBeginCComm c
+takeBeginCComm (ExtSkip   pos)         = sourceColumn $ begin pos
+takeBeginCComm (ExtAbort  pos)         = sourceColumn $ begin pos
+takeBeginCComm (ExtPre    pos _)       = sourceColumn $ begin pos
+takeBeginCComm (ExtAssert pos _)       = sourceColumn $ begin pos
+takeBeginCComm (ExtIf     pos _)       = sourceColumn $ begin pos
+takeBeginCComm (ExtIAssig pos _ _)     = sourceColumn $ begin pos
+takeBeginCComm (ExtBAssig pos _ _)     = sourceColumn $ begin pos
+takeBeginCComm (ExtDo     pos _ _ _)   = sourceColumn $ begin pos
+takeBeginCComm (ExtEval   (toE:_))     = sourceColumn $ begin (extEvalPos toE)
+takeBeginCComm (ExtSeq c _)            = takeBeginCComm c
+takeBeginCComm _          = error "takeBeginCComm: Imposible"
 
 takeEndCComm :: ExtComm -> Int
-takeEndCComm (ExtSkip   pos)       = sourceColumn $ end pos
-takeEndCComm (ExtAbort  pos)       = sourceColumn $ end pos
-takeEndCComm (ExtPre    pos _)     = sourceColumn $ end pos
-takeEndCComm (ExtAssert pos _)     = sourceColumn $ end pos
-takeEndCComm (ExtIf     pos _)     = sourceColumn $ end pos
-takeEndCComm (ExtIAssig pos _ _)   = sourceColumn $ end pos
-takeEndCComm (ExtBAssig pos _ _)   = sourceColumn $ end pos
-takeEndCComm (ExtDo     pos _ _ _) = sourceColumn $ end pos
-takeEndCComm (ExtSeq c _)          = takeEndCComm c
+takeEndCComm (ExtSkip   pos)         = sourceColumn $ end pos
+takeEndCComm (ExtAbort  pos)         = sourceColumn $ end pos
+takeEndCComm (ExtPre    pos _)       = sourceColumn $ end pos
+takeEndCComm (ExtAssert pos _)       = sourceColumn $ end pos
+takeEndCComm (ExtIf     pos _)       = sourceColumn $ end pos
+takeEndCComm (ExtIAssig pos _ _)     = sourceColumn $ end pos
+takeEndCComm (ExtBAssig pos _ _)     = sourceColumn $ end pos
+takeEndCComm (ExtDo     pos _ _ _)   = sourceColumn $ end pos
+takeEndCComm (ExtEval   (toE:_)) = sourceColumn $ end (extEvalPos toE)
+takeEndCComm (ExtSeq c _)            = takeEndCComm c
+takeEndCComm _          = error "takeEndCComm: Imposible"
+
+extEvalPos :: ExpToEval -> CommPos
+extEvalPos (Left (pos,_)) = pos
+extEvalPos (Right (pos,_)) = pos
 
 takePos :: ExtComm -> CommPos
 takePos (ExtSkip   pos)       = pos
@@ -72,7 +82,9 @@ takePos (ExtIf     pos _)     = pos
 takePos (ExtIAssig pos _ _)   = pos
 takePos (ExtBAssig pos _ _)   = pos
 takePos (ExtDo     pos _ _ _) = pos
+takePos (ExtEval   (toE:_))   = extEvalPos toE
 takePos (ExtSeq c _)          = takePos c
+takePos _ = error "Imposible"
 
 getCommLines :: ExtComm -> [Int]
 getCommLines (ExtSeq c c')        = getCommLines c ++ getCommLines c'
@@ -106,8 +118,13 @@ data ExtComm where
     
     ExtDo     :: CommPos -> FormFun -> BExp -> ExtComm -> ExtComm
     ExtSeq    :: ExtComm -> ExtComm -> ExtComm
+    ExtEval   :: ExpsToEval -> ExtComm
     deriving Show
 
+type ExpToEval  = Either (CommPos,Exp) (CommPos,BExp)
+type ExpsToEval = [ExpToEval]
+
 data ExtProgram where
-    ExtProg :: LIdentifier -> ExtComm -> ExtProgram
+    ExtProg     :: LIdentifier -> ExtComm    -> ExtProgram
+    ExtEvalProg :: LIdentifier -> ExpsToEval -> ExtProgram
     deriving Show

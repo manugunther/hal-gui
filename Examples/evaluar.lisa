@@ -1,0 +1,9 @@
+
+vardef r: Int;
+vardef i: Int;
+
+evaluar 0-4;
+
+evaluar 3+4;
+
+evaluar not True;

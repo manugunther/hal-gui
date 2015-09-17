@@ -137,6 +137,33 @@ extComms = choice $ map try
 extComm :: ParserH ExtComm
 extComm = try $ whites >> many1 extComms >>= return . foldl1 ExtSeq
 
+intExpToEval :: ParserH ExpToEval
+intExpToEval = do
+            keyword "evaluar" 
+
+            inib <- statePos <$> getParserState
+            i <- (intexp <?> "Expresión booleana")
+            endb <- statePos <$> getParserState
+
+            _ <- semip
+
+            return $ Left ((makeCommPos inib endb), i)
+
+boolExpToEval :: ParserH ExpToEval
+boolExpToEval = do
+            keyword "evaluar" 
+
+            inib <- statePos <$> getParserState
+            b <- (boolexp <?> "Expresión booleana")
+            endb <- statePos <$> getParserState
+
+            _ <- semip
+
+            return $ Right ((makeCommPos inib endb), b)
+
+expsToEval :: ParserH ExpsToEval
+expsToEval = many1 $ choice $ map try $ [intExpToEval, boolExpToEval]
+
 -- | Un programa consta de declaraciones de variables, una precondición,
 --   un comando y una postcondición 
 extProgram :: ParserH ExtProgram
@@ -147,9 +174,20 @@ extProgram = varinputs >>
              M.elems . pvars . stateUser <$> getParserState >>= \vars ->
              return $ ExtProg vars c
 
+extEvalProgram :: ParserH ExtProgram
+extEvalProgram = varinputs >>
+                 vardefs >>
+                 expsToEval >>= \toEval ->
+                 eof >>
+                 M.elems . pvars . stateUser <$> getParserState >>= \vars ->
+                 return $ ExtEvalProg vars toEval
+
+parseProgram :: ParserH ExtProgram
+parseProgram = choice $ map try [extProgram,extEvalProgram]
+
 -- | Función principal de parseo desde String
 parseExtPrgFromString :: String -> Either ParseError ExtProgram
-parseExtPrgFromString = runParser extProgram initSt "" 
+parseExtPrgFromString = runParser parseProgram initSt "" 
     where initSt = PHalState { lvars = M.empty
                              , pvars = M.empty
                              , equPState = PEqu.initPExprState PEqu.UnusedParen
