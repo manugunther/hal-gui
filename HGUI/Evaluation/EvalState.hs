@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module HGUI.Evaluation.EvalState where
 
-import Graphics.UI.Gtk (Window)
+import Graphics.UI.Gtk (Window, TextView)
 
 import Control.Monad.Trans.State (StateT)
 
@@ -134,7 +134,7 @@ data ExpectValue = ExpectBool | ExpectInt
 data State = State { vars :: [StateTuple] }
 
 -- | Mónada de la semántica denotacional.
-type ProgState = StateT (State,Window) IO
+type ProgState = StateT (State,Window,TextView) IO
 
 instance Show State where
     show (State vars) = show vars

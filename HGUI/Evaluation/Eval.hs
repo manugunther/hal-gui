@@ -36,6 +36,7 @@ import Hal.Lang
 
 -- Imports de Hal-Gui
 import HGUI.Config
+import HGUI.Console
 import HGUI.ExtendedLang
 import HGUI.Evaluation.EvalState
 
@@ -113,7 +114,7 @@ evalExp :: Exp -> ProgState (Maybe Int)
 evalExp (IBOp iop e e') = evalIntBOp iop (evalExp e) (evalExp e')
 evalExp (ICon i) = return $ Just i
 evalExp (IntId i) = do 
-            (st,win) <- ST.get
+            (st,win,_) <- ST.get
             let idSts = vars st
             
             mvalue <- getValue i idSts
@@ -137,7 +138,7 @@ evalBExp (BUOp bop e)    = evalBoolUOp bop $ evalBExp e
 evalBExp (BBOp bop e e') = evalBoolBOp bop (evalBExp e) (evalBExp e')
 evalBExp (BCon b) = return $ Just b
 evalBExp (BoolId i) = do 
-            (st,win) <- ST.get
+            (st,win,_) <- ST.get
             let idSts = vars st
             
             mvalue <- getValue i idSts
@@ -173,7 +174,7 @@ evalExprFun :: FormFun -> Bool -> ProgState (Maybe ())
 evalExprFun (Expr f) isPre = 
                        if PExpr.preExprIsQuant f then return (Just ())
                        else do
-                       (st,win) <- ST.get
+                       (st,win,_) <- ST.get
                        let funExpr = Fun.eval f (makeEnv st) 
                        if Expr funExpr == FOL.true
                        then return $ Just ()
@@ -217,7 +218,7 @@ evalExprFun (Expr f) isPre =
 -- | Evaluador de los comandos.
 evalExtComm :: ExtComm -> ProgState (Maybe ())
 evalExtComm (ExtSkip _) = return $ Just ()
-evalExtComm (ExtAbort _) = ST.get >>= \(_,win) -> 
+evalExtComm (ExtAbort _) = ST.get >>= \(_,win,_) -> 
                            liftIO (showErrMsg win abortMsg) >> return Nothing
 evalExtComm (ExtAssert _ b) = evalExprFun b False
 evalExtComm (ExtPre _ f) = evalExprFun f True
@@ -228,20 +229,20 @@ evalExtComm (ExtIAssig _ a e) = do
             case mevalE of
                 Nothing -> return Nothing
                 Just evalE -> do
-                        (st,win) <- ST.get 
+                        (st,win,ctv) <- ST.get 
                         let idSts = vars st
                         let idSts' = L.map (updateValue a (Right evalE)) idSts
-                        ST.put (st { vars =  idSts'},win)
+                        ST.put (st { vars =  idSts'},win,ctv)
                         return $ Just ()
 evalExtComm (ExtBAssig _ a e) = do 
             mevalE <- evalBExp e
             case mevalE of
                 Nothing -> return Nothing
                 Just evalE -> do
-                        (st,win) <- ST.get
+                        (st,win,ctv) <- ST.get
                         let idSts = vars st
                         let idSts' = L.map (updateValue a (Left evalE)) idSts
-                        ST.put (st { vars =  idSts'},win)
+                        ST.put (st { vars =  idSts'},win,ctv)
                         return $ Just ()
 evalExtComm (ExtSeq c c') = evalExtComm c >> evalExtComm c'
 evalExtComm (ExtDo _ inv b c) = fix evalDo
@@ -258,7 +259,7 @@ evalExtComm (ExtDo _ inv b c) = fix evalDo
                 
 evalStepExtComm :: ExtComm -> ProgState (Maybe (Maybe ExtComm,Maybe ExtComm))
 evalStepExtComm (ExtEval toEs) = do
-         (state,win) <- ST.get
+         (state,win,consoleTV) <- ST.get
          case toEs of
              ((Left (_,ie)):toEs') -> do
                    let stateTuples = vars state
@@ -271,9 +272,10 @@ evalStepExtComm (ExtEval toEs) = do
                    mi <- evalI win expr st
                    
                    maybe (return (Just (Just undefined, Nothing)))
-                         (\i -> 
-                          liftIO (showOutputMsg win (show i)) >>
-                          return (Just (Just undefined, toEs''))
+                         (\i ->
+                          let showi = unwords ["evaluar",show expr,"=",show i]
+                          in liftIO (printInfoMsgIO showi consoleTV) >>
+                             return (Just (Just undefined, toEs''))
                          ) mi
              ((Right (_,be)):toEs') -> do
                    let stateTuples = vars state
@@ -287,8 +289,9 @@ evalStepExtComm (ExtEval toEs) = do
                    
                    maybe (return (Just (Just undefined, Nothing)))
                          (\b -> 
-                          liftIO (showOutputMsg win (show b)) >>
-                          return (Just (Just undefined, toEs''))
+                          let showb = unwords ["evaluar",show expr,"=",show b]
+                          in liftIO (printInfoMsgIO showb consoleTV) >>
+                             return (Just (Just undefined, toEs''))
                          ) mb
              _ -> error "ExtEval []: Imposible"
     where
@@ -309,7 +312,7 @@ evalStepExtComm (ExtEval toEs) = do
                              return Nothing
                         )
 evalStepExtComm comm = do
-        (state,win) <- ST.get
+        (state,win,ctv) <- ST.get
         let stateTuples = vars state
             stmt        = ecToSyntax comm
             st          = stHalToSt stateTuples
@@ -320,7 +323,7 @@ evalStepExtComm comm = do
         expectedN <- nextCommand comm
         let next = contToMEC cont expectedN stateTuples
         
-        ST.put (State { vars = stateTuples' },win)
+        ST.put (State { vars = stateTuples' },win,ctv)
         return $ Just (Just undefined,next)
     where
         evalSem :: Window -> AS.Statement -> ASem.State ->

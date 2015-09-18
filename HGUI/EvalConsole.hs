@@ -235,9 +235,10 @@ evalExecute :: GuiMonad ()
 evalExecute = ask >>= \content -> getHGState >>= \st -> do
     let Just execSt = st ^. gHalConsoleState
         prgSt       = prgState execSt
-        mexecComm  = executedTracePrg execSt
+        mexecComm   = executedTracePrg execSt
         mnexecComm  = nexecutedTracePrg execSt
         win         = content ^. gHalWindow
+        ctv         = content ^. (gHalInfoConsole . infoConTView)
              
     flagSt <- io $ newEmptyMVar
     
@@ -250,8 +251,8 @@ evalExecute = ask >>= \content -> getHGState >>= \st -> do
         (_,Nothing)-> return ()
         (Nothing,_)-> return ()
         (Just prgSt',Just nexecComm) -> do
-            (m,(prgSt'',_)) <- io $ ST.runStateT 
-                                       (evalExtComm nexecComm) (prgSt',win)
+            (m,(prgSt'',_,_)) <- io $ ST.runStateT 
+                                       (evalExtComm nexecComm) (prgSt',win,ctv)
             case m of
                 Nothing -> return ()
                 Just _ -> do
@@ -304,6 +305,7 @@ evalStepDown = getHGState >>= \st -> ask >>= \content -> do
         mexecComm   = executedTracePrg execSt
         
         win = content ^. gHalWindow
+        ctv = content ^. (gHalInfoConsole . infoConTView)
     
     flagSt <- io $ newEmptyMVar
     
@@ -325,15 +327,16 @@ evalStepDown = getHGState >>= \st -> ask >>= \content -> do
                 Nothing -> return True
                 Just nexecComm -> do
                     
-                    (mmc,(prgSt'',_)) <- io $ catch
-                                               (ST.runStateT
-                                                   (evalStepExtComm nexecComm)
-                                                   (prgSt',win)
-                                               )
-                                               (\(err :: SomeException) ->
-                                                   showErrMsg win (show err) >>
-                                                   return (Nothing, (prgSt',win))
-                                               )
+                    (mmc,(prgSt'',_,_)) <- 
+                               io $ catch
+                                    (ST.runStateT
+                                        (evalStepExtComm nexecComm)
+                                        (prgSt',win,ctv)
+                                    )
+                                    (\(err :: SomeException) ->
+                                           showErrMsg win (show err) >>
+                                           return (Nothing, (prgSt',win,ctv))
+                                    )
                     
                     case mmc of
                         Nothing -> return False
@@ -368,6 +371,7 @@ takeInputs prgSt flagSt = ask >>= \content ->
             let Just execSt = st ^. gHalConsoleState
                 ids         = takeInputsIdentifiers $ prgState execSt
                 mainWin     = content ^. gHalWindow
+                ctv         = content ^. (gHalInfoConsole . infoConTView)
             
             if null ids
                then putMVar flagSt (Just $ prgState execSt)
@@ -396,9 +400,9 @@ takeInputs prgSt flagSt = ask >>= \content ->
                     
                     (idsBox,iels) <- fillEntryIds ids
                     
-                    void $ on win keyPressEvent $ configWinAccions win iels
+                    void $ on win keyPressEvent $ configWinAccions win ctv iels
                     
-                    configButtons win readyB cancelB iels flagSt
+                    configButtons win ctv readyB cancelB iels flagSt
                     
                     containerAdd vbox infolLabel
                     containerAdd vbox idsBox
@@ -408,30 +412,30 @@ takeInputs prgSt flagSt = ask >>= \content ->
                     
                     return ()
     where
-        configWinAccions :: Window -> [(Identifier,Entry, Label)] -> 
+        configWinAccions :: Window -> TextView -> [(Identifier,Entry, Label)] -> 
                             EventM EKey Bool
-        configWinAccions win iels = do
+        configWinAccions win ctv iels = do
                            ev <- eventKeyName
                            case glibToString ev of
                                "Escape" -> io $ putMVar flagSt Nothing >> 
                                                 widgetDestroy win >> 
                                                 return True
-                               "Return" -> io $ checkEntrys win iels >> 
+                               "Return" -> io $ checkEntrys win ctv iels >> 
                                                 return True
                                _        -> return False
-        configButtons :: Window -> Button -> Button -> 
+        configButtons :: Window -> TextView -> Button -> Button -> 
                          [(Identifier,Entry, Label)] -> MVar (Maybe State) -> 
                          IO ()
-        configButtons win readyB cancelB iels flagst = do
+        configButtons win ctv readyB cancelB iels flagst = do
             
             void $ onClicked cancelB $ putMVar flagst Nothing >>
                                        widgetDestroy win
-            void $ onClicked readyB  $ checkEntrys win iels
+            void $ onClicked readyB  $ checkEntrys win ctv iels
             
             return ()
             
-        checkEntrys :: Window -> [(Identifier,Entry, Label)] -> IO ()
-        checkEntrys win iels = forM iels checkEntry >>= \check ->
+        checkEntrys :: Window -> TextView -> [(Identifier,Entry, Label)] -> IO ()
+        checkEntrys win ctv iels = forM iels checkEntry >>= \check ->
                               if and $ map isJust $ check
                               then putMVar flagSt (Just $ addInputsValue prgSt $
                                                           catMaybes check) >>
@@ -440,7 +444,7 @@ takeInputs prgSt flagSt = ask >>= \content ->
             where
                 checkEntry :: (Identifier,Entry, Label) -> 
                               IO (Maybe (Identifier,EitherBI))
-                checkEntry (i,entry,label) = getValue win i entry label
+                checkEntry (i,entry,label) = getValue win ctv i entry label
         
         fillEntryIds :: [Identifier] -> IO (VBox,[(Identifier,Entry, Label)])
         fillEntryIds ids = do
@@ -467,9 +471,9 @@ takeInputs prgSt flagSt = ask >>= \content ->
                       
                       fillEntryIds' ids (iels ++ [(i,entry,errLabel)]) idsBox
         
-        getValue :: Window -> Identifier -> Entry -> 
+        getValue :: Window -> TextView -> Identifier -> Entry -> 
                     Label -> IO (Maybe (Identifier,EitherBI))
-        getValue mainWin i entry label = do
+        getValue mainWin ctv i entry label = do
             strValue <- entryGetText entry
             case idDataType i of
                 BoolTy -> case parseBConFromString strValue of
@@ -478,7 +482,10 @@ takeInputs prgSt flagSt = ask >>= \content ->
                             Right v -> do
                                     setMsg ""
                                     Just v' <- ST.evalStateT (evalBExp v)
-                                                             (initState,mainWin)
+                                                             ( initState
+                                                             , mainWin
+                                                             , ctv
+                                                             )
                                     return $ Just $ (i,Left $ v')
                 IntTy -> case parseConFromString strValue of
                             Left _ -> setMsg "Valor no valido." >> 
@@ -486,7 +493,10 @@ takeInputs prgSt flagSt = ask >>= \content ->
                             Right v -> do
                                     setMsg ""
                                     Just v' <- ST.evalStateT (evalExp v) 
-                                                             (initState,mainWin)
+                                                             ( initState
+                                                             , mainWin
+                                                             , ctv
+                                                             )
                                     return $ Just $ (i,Right $ v')
             where
                 setMsg :: String -> IO ()
