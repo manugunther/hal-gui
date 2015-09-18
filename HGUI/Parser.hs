@@ -190,8 +190,8 @@ changePosEval (e:es) = snd (foldl f (pe,[e]) es)
                     Left (p,_)  -> p
                     Right (p,_) -> p
           f :: (CommPos,ExpsToEval) -> ExpToEval -> (CommPos,ExpsToEval)
-          f (p,es) (Left (p',e))  = (p',es++[Left (p,e)])
-          f (p,es) (Right (p',e)) = (p',es++[Right (p,e)])
+          f (p,es') (Left (p',e'))  = (p',es'++[Left (p,e')])
+          f (p,es') (Right (p',e')) = (p',es'++[Right (p,e')])
               
                  
 parseProgram :: ParserH ExtProgram

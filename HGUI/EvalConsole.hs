@@ -362,8 +362,8 @@ evalStepDown = getHGState >>= \st -> ask >>= \content -> do
                             return True
 
 takeInputs :: State -> MVar (Maybe State) -> GuiMonad ()
-takeInputs prgSt flagSt = ask >>= \content -> 
-                          getHGState >>= \st -> 
+takeInputs prgSt flagSt = ask >>= \content ->
+                          getHGState >>= \st ->
                           io $ postGUIAsync $ do
             let Just execSt = st ^. gHalConsoleState
                 ids         = takeInputsIdentifiers $ prgState execSt
@@ -391,7 +391,7 @@ takeInputs prgSt flagSt = ask >>= \content ->
                             , widgetCanFocus       := True
                             , windowTransientFor   := mainWin
                             ]
-                    
+
                     containerAdd win vbox
                     
                     (idsBox,iels) <- fillEntryIds ids
@@ -432,7 +432,7 @@ takeInputs prgSt flagSt = ask >>= \content ->
             
         checkEntrys :: Window -> [(Identifier,Entry, Label)] -> IO ()
         checkEntrys win iels = forM iels checkEntry >>= \check ->
-                           if and $ map isJust $ check
+                              if and $ map isJust $ check
                               then putMVar flagSt (Just $ addInputsValue prgSt $
                                                           catMaybes check) >>
                                    widgetDestroy win
@@ -451,21 +451,21 @@ takeInputs prgSt flagSt = ask >>= \content ->
                          VBox -> IO (VBox,[(Identifier,Entry, Label)])
         fillEntryIds' [] iels idsBox = return (idsBox,iels)
         fillEntryIds' (i:ids) iels idsBox = do
-                            idLabel  <- labelNew (Just $ unpack (idName i) 
+                      idLabel  <- labelNew (Just $ unpack (idName i) 
                                                          ++ ":" ++ 
                                                          show (idDataType i))
-                            entry    <- entryNew
-                            errLabel <- labelNew (Nothing :: Maybe Text)
-                            hbox     <- hBoxNew False 0
-                            
-                            boxPackStart hbox idLabel  PackNatural 1
-                            boxPackStart hbox entry    PackNatural 1
-                            boxPackStart hbox errLabel PackNatural 1
-                            widgetSetNoShowAll errLabel True
-                            
-                            containerAdd idsBox hbox
-                            
-                            fillEntryIds' ids ((i,entry,errLabel):iels) idsBox
+                      entry    <- entryNew
+                      errLabel <- labelNew (Nothing :: Maybe Text)
+                      hbox     <- hBoxNew False 0
+                      
+                      boxPackStart hbox idLabel  PackNatural 1
+                      boxPackStart hbox entry    PackNatural 1
+                      boxPackStart hbox errLabel PackNatural 1
+                      widgetSetNoShowAll errLabel True
+                      
+                      containerAdd idsBox hbox
+                      
+                      fillEntryIds' ids (iels ++ [(i,entry,errLabel)]) idsBox
         
         getValue :: Window -> Identifier -> Entry -> 
                     Label -> IO (Maybe (Identifier,EitherBI))
@@ -591,9 +591,9 @@ evalRestart = ask >>= \content -> getHGState >>= \st -> do
                   execSt'     = restartExecSt execSt prg
                   headC       = headNExecComm execSt'
                   tv          = content ^. gTextCode
-              
+
               cleanPaintLine $ castToTextView tv
-              updateHGState ((.~) gHalConsoleState (Just execSt'))
+              updateHGState (gHalConsoleState .~ Just execSt')
               updateStateView $ prgState execSt'
               maybe (return ()) paintLine headC
               io $ mapM_ (removeAllMarks tv) (prgBreaks execSt)

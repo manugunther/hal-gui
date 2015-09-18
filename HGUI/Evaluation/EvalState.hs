@@ -146,7 +146,8 @@ makeState :: [StateTuple] -> State
 makeState = State 
 
 makePrgState :: [(Identifier,EitherBI)] -> State
-makePrgState = makeState . map (\(i,ev) -> either (BoolVar i . Just) (IntVar i . Just) ev)
+makePrgState = makeState . map (\(i,ev) -> 
+                         either (BoolVar i . Just) (IntVar i . Just) ev)
 
 takeIdentifiers :: State -> [Identifier]
 takeIdentifiers = map takeIdentifier . vars

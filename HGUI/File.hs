@@ -156,7 +156,7 @@ saveDialog label filename fileFilter = ask >>= \content ->
         save:: FilePath -> String -> GuiMonad ()
         save filepath code = io $ writeFile filepath code
 
--- | Filtro de programas de fun.
+-- | Filtro de programas de hal.
 halFileFilter :: (FileChooserClass f, MonadIO m) => f -> m ()
 halFileFilter dialog = io $ setFileFilter dialog ["*.lisa"] "Programa de hal"
 
