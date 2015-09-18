@@ -22,8 +22,7 @@ import HGUI.ExtendedLang (ExtProgram)
 type TextFilePath = Text
 
 -- | Información sobre los items del toolBar.
-data HalToolbar = HalToolbar { _symFrameB  :: ToggleToolButton
-                             , _evalButton :: ToggleToolButton
+data HalToolbar = HalToolbar { _evalButton :: ToggleToolButton
                              }
 $(makeLenses ''HalToolbar)
 
@@ -62,7 +61,6 @@ $(makeLenses ''HalEditorPaned)
 -- Con StopFlag restringimos el avance de la evaluación, la idea principal
 -- es parar cualquier ejecución que no tenga final.
 data HGReader = HGReader { _gHalToolbar     :: HalToolbar
-                         , _gHalSymbolList  :: HalSymList
                          , _gHalEditorPaned :: HalEditorPaned
                          , _gHalWindow      :: Window
                          , _gHalInfoConsole :: HalInfoConsole

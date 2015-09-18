@@ -14,7 +14,6 @@ import HGUI.File
 import HGUI.Console
 import HGUI.EvalConsole
 import HGUI.GState
-import HGUI.SymbolList
 import HGUI.Config
 
 mainHalGui :: Builder -> IO ()
@@ -25,7 +24,6 @@ mainHalGui xml = do
                                  configMenuBarButtons xml
                                  configToolBarButtons xml
                                  configInfoConsole
-                                 configSymbolList
                                  eventsSourceView
                                  configEvalConsole
                              ) gReader gState
@@ -36,14 +34,6 @@ mainHalGui xml = do
 makeGState :: Builder -> IO (HGReader,HGStateRef) 
 makeGState xml = do
         
-        symFraB <- builderGetObject xml castToToggleToolButton "symHFrameButton"
-        
-        symFrame   <- builderGetObject xml castToFrame "symFrame"
-        goLeftBox  <- builderGetObject xml castToHBox "symGoLeftBox"
-        scrollW    <- builderGetObject xml castToScrolledWindow "swSymbolList"
-        symIV      <- builderGetObject xml castToIconView "symbolList"
-        goRightBox <- builderGetObject xml castToHBox "symGoRightBox"
-
         edPaned <- builderGetObject xml castToVPaned "edPaned"
         
         window <- builderGetObject xml castToWindow "mainWindow"
@@ -71,8 +61,7 @@ makeGState xml = do
         forkFlag <- newEmptyMVar
         stopFlag <- newMVar ()
         
-        let halToolbarST   = HalToolbar symFraB evalB
-            halSymListST   = HalSymList symFrame goLeftBox scrollW symIV goRightBox
+        let halToolbarST   = HalToolbar evalB
             halEditorPaned = HalEditorPaned edPaned
             halCommConsole = HalCommConsole evalBox evalStateBox stateBox
                                             stepDB contB breakB 
@@ -86,7 +75,6 @@ makeGState xml = do
                               Nothing
                               
         let gReader = HGReader halToolbarST
-                               halSymListST
                                halEditorPaned
                                window
                                (HalInfoConsole infoTV)
@@ -107,17 +95,13 @@ configToolBarButtons xml = ask >>= \content -> get >>= \st ->
         openFButton     <- bGetObject "openHFileButton"
         saveFButton     <- bGetObject "saveHFileButton"
         saveAtFButton   <- bGetObject "saveHFileAtButton"
-        compileMButton  <- bGetObject "compileHModuleButton"
         evaButton       <- bGetObject "evalButton"
-        symFButton      <- bGetObject "symHFrameButton"
         
         void $ onTBClicked newFButton     (eval createNewFile content st)
         void $ onTBClicked openFButton    (eval openFile content st)
         void $ onTBClicked saveFButton    (eval saveFile content st)
         void $ onTBClicked saveAtFButton  (eval saveAtFile content st)
-        void $ onTBClicked compileMButton (eval compile content st >> return ())
         void $ onTBClicked evaButton      (eval configEvalButton content st)
-        void $ onTBClicked symFButton     (eval configSymFrameButton content st)
         
         return ()
     where
