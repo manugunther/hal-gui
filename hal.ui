@@ -16,7 +16,6 @@
               <object class="GtkMenuItem" id="menuitem1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Archivo</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
@@ -28,7 +27,6 @@
                         <property name="label">gtk-new</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -38,7 +36,6 @@
                         <property name="label">gtk-open</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -48,7 +45,6 @@
                         <property name="label">gtk-save</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -58,7 +54,6 @@
                         <property name="label">gtk-save-as</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -67,7 +62,6 @@
                       <object class="GtkSeparatorMenuItem" id="separatormenuitem1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                       </object>
                     </child>
                     <child>
@@ -75,7 +69,6 @@
                         <property name="label">gtk-quit</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <accelerator key="q" signal="activate" modifiers="GDK_CONTROL_MASK"/>
@@ -89,7 +82,6 @@
               <object class="GtkMenuItem" id="menuitem2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Editar</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
@@ -101,7 +93,6 @@
                         <property name="label">gtk-cut</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -111,7 +102,6 @@
                         <property name="label">gtk-copy</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -121,7 +111,6 @@
                         <property name="label">gtk-paste</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -131,7 +120,6 @@
                         <property name="label">gtk-delete</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -144,7 +132,6 @@
               <object class="GtkMenuItem" id="menuitem3">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Ver</property>
                 <property name="use_underline">True</property>
               </object>
@@ -153,7 +140,6 @@
               <object class="GtkMenuItem" id="menuitem4">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">Ay_uda</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
@@ -165,7 +151,6 @@
                         <property name="label">gtk-about</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -193,7 +178,6 @@
                 <property name="has_tooltip">True</property>
                 <property name="tooltip_markup">Comenzar un nuevo módulo.</property>
                 <property name="tooltip_text" translatable="yes">Comenzar un nuevo módulo.</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_underline">True</property>
                 <property name="stock_id">gtk-new</property>
                 <accelerator key="t" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
@@ -210,7 +194,6 @@
                 <property name="has_tooltip">True</property>
                 <property name="tooltip_markup">Cargar un módulo desde archivo.</property>
                 <property name="tooltip_text" translatable="yes">Cargar un módulo desde archivo.</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_underline">True</property>
                 <property name="stock_id">gtk-open</property>
                 <accelerator key="o" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
@@ -227,7 +210,6 @@
                 <property name="has_tooltip">True</property>
                 <property name="tooltip_markup">Guardar el módulo seleccionado.</property>
                 <property name="tooltip_text" translatable="yes">Guardar el módulo seleccionado.</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_underline">True</property>
                 <property name="stock_id">gtk-save</property>
                 <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
@@ -244,7 +226,6 @@
                 <property name="has_tooltip">True</property>
                 <property name="tooltip_markup">Guardar como, para un módulo.</property>
                 <property name="tooltip_text" translatable="yes">Guardar como, para un módulo.</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_underline">True</property>
                 <property name="stock_id">gtk-save-as</property>
               </object>
@@ -267,7 +248,6 @@
               <object class="GtkToggleToolButton" id="evalButton">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible_vertical">False</property>
                 <property name="label" translatable="yes">toolbutton</property>
                 <property name="stock_id">gtk-execute</property>
@@ -452,7 +432,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_action_appearance">False</property>
                             <accelerator key="Right" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                             <child>
                               <object class="GtkHBox" id="box5">
@@ -498,7 +477,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_action_appearance">False</property>
                             <accelerator key="Down" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                             <child>
                               <object class="GtkHBox" id="box8">
@@ -544,7 +522,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_action_appearance">False</property>
                             <accelerator key="b" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                             <child>
                               <object class="GtkHBox" id="box9">
@@ -590,7 +567,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_action_appearance">False</property>
                             <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                             <child>
                               <object class="GtkHBox" id="box10">
@@ -636,7 +612,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_action_appearance">False</property>
                             <accelerator key="b" signal="activate" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
                             <child>
                               <object class="GtkHBox" id="box11">
@@ -682,7 +657,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_action_appearance">False</property>
                             <accelerator key="space" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                             <child>
                               <object class="GtkHBox" id="box3">
@@ -768,10 +742,24 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkTextView" id="infoConsoleTView">
+                      <object class="GtkScrolledWindow" id="scrolledwindow2">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="editable">False</property>
+                        <property name="hscrollbar_policy">automatic</property>
+                        <property name="vscrollbar_policy">automatic</property>
+                        <child>
+                          <object class="GtkViewport" id="viewport2">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkTextView" id="infoConsoleTView">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="editable">False</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
                       </object>
                       <packing>
                         <property name="expand">True</property>

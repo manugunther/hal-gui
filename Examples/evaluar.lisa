@@ -11,3 +11,6 @@ evaluar y % 3;
 
 evaluar  b && (x % 2 = 0);
 
+evaluar not b || (y < x);
+
+evaluar 4 = x / 2 && y * 2 < 20;

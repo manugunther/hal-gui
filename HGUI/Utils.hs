@@ -29,10 +29,10 @@ putStrAtEnd buf tv msg = do
         textBufferInsertLn buf msg
         -- textViewScrollToIter no anda bien, por eso uso scrollToMark
         textBufferInsertLn buf ""
-        titer2 <- textBufferGetEndIter buf
+        --titer2 <- textBufferGetEndIter buf
         
-        mark <- textBufferCreateMark buf Nothing titer2 False
-        textViewScrollToMark tv mark 0 Nothing
+        --mark <- textBufferCreateMark buf Nothing titer2 False
+        --textViewScrollToMark tv mark 0 Nothing
 
 -- | Pone un mensaje en una área de estado.
 putMsgSB :: Statusbar -> ContextId -> String -> IO ()

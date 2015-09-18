@@ -39,3 +39,27 @@ data Statement = Skip                      -- No hacer nada
                | Seq Statement Statement   -- Secuencia
                | If [(BoolExpr,Statement)] -- Condicional
                | Do BoolExpr Statement     -- Ciclo
+
+               
+               
+-- Instancia Show para las expresiones
+instance Show IntExpr where
+    show (ConstI i)   = show i
+    show (VI v)       = v
+    show (Neg e)      = "- " ++ show e
+    show (Plus e1 e2) = parens (show e1 ++ " + " ++ show e2)
+    show (Prod e1 e2) = parens (show e1 ++ " * " ++ show e2)
+    show (Div e1 e2)  = parens (show e1 ++ " / " ++ show e2)
+    show (Mod e1 e2)  = parens (show e1 ++ " % " ++ show e2)
+    
+instance Show BoolExpr where
+    show (ConstB b)    = show b
+    show (VB v)        = v
+    show (And e1 e2)   = parens (show e1 ++ " && " ++ show e2)
+    show (Or e1 e2)    = parens (show e1 ++ " || " ++ show e2)
+    show (Not e)       = parens ("not " ++ show e)
+    show (Equal e1 e2) = parens (show e1 ++ " = " ++ show e2)
+    show (Less e1 e2)  = parens (show e1 ++ " < " ++ show e2)
+
+parens :: String -> String
+parens s = "( " ++ s ++ " )"
