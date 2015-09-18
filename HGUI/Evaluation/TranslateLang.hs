@@ -9,7 +9,10 @@ import qualified Language.Syntax as AS
 import qualified Language.Semantics as ASem
 import qualified Language.ListAssoc as LA
 
+import qualified Data.Map as M
+
 import Data.Text ( unpack )
+import Control.Arrow ((***))
 
 type VarToId = [StateTuple] -- M.Map AS.AS.VarName Identifier
 
@@ -139,25 +142,34 @@ ecToSyntax e = error $ "No existe esta sentencia en la sintaxis del proyecto: " 
             
             
 -- Traducción del estado de Hal al estado del proyecto
-stHalToSt :: [StateTuple] -> ASem.State
-stHalToSt = foldl f (LA.Empty,LA.Empty)
-    where f :: ASem.State -> StateTuple -> ASem.State
+stHalToSt' :: [StateTuple] -> (M.Map AS.VarName Int,M.Map AS.VarName Bool)
+stHalToSt' = foldl f (M.empty,M.empty)
+    where f :: (M.Map AS.VarName Int,M.Map AS.VarName Bool) -> StateTuple -> 
+               (M.Map AS.VarName Int,M.Map AS.VarName Bool)
           f (sti,stb) (IntVar i mint) = 
               let v = (unpack $ idName i)
               in case mint of
-                    Nothing -> (LA.la_agregar v ASem.defaultIntValue sti,stb)
-                    Just e  -> (LA.la_agregar v e sti,stb)
+                    Nothing -> (M.insert v ASem.defaultIntValue sti,stb)
+                    Just e  -> (M.insert v e sti,stb)
           f (sti,stb) (BoolVar i mbool) = 
               let v = (unpack $ idName i)
               in case mbool of
-                    Nothing -> (sti,LA.la_agregar v ASem.defaultBoolValue stb)
-                    Just e  -> (sti,LA.la_agregar v e stb)
-    
+                    Nothing -> (sti,M.insert v ASem.defaultBoolValue stb)
+                    Just e  -> (sti,M.insert v e stb)
+
+stHalToSt :: [StateTuple] -> ASem.State
+stHalToSt = (mapToLAssoc *** mapToLAssoc) . stHalToSt'
+    where mapToLAssoc :: M.Map a b -> LA.ListAssoc a b
+          mapToLAssoc m = lpairToLAssoc (M.toList m)
+          lpairToLAssoc :: [(a,b)] -> LA.ListAssoc a b
+          lpairToLAssoc [] = LA.Empty
+          lpairToLAssoc ((a,b):ls) = LA.Node a b (lpairToLAssoc ls)
+                    
 stToStHal :: ASem.State -> VarToId -> [StateTuple]
 stToStHal (sti,stb) m = 
-    let stires = foldlWithKey fi [] sti
+    let stires = M.foldlWithKey fi [] (laToMap sti)
     in
-        foldlWithKey fb stires stb
+        M.foldlWithKey fb stires (laToMap stb)
     where fi :: [StateTuple] -> AS.VarName -> Int -> [StateTuple]
           fi st v i = let ident = lookupVar v m 
                       in
@@ -166,9 +178,12 @@ stToStHal (sti,stb) m =
           fb st v b = let ident = lookupVar v m
                       in
                           (BoolVar ident (Just b) : st)
-          foldlWithKey :: (c -> a -> b -> c) -> c -> LA.ListAssoc a b -> c
-          foldlWithKey f c LA.Empty        = c
-          foldlWithKey f c (LA.Node a b l) = f (foldlWithKey f c l) a b
+
+          laToMap :: (Ord a) => LA.ListAssoc a b -> M.Map a b
+          laToMap = M.fromList . laToList
+          laToList :: LA.ListAssoc a b -> [(a,b)]
+          laToList LA.Empty = []
+          laToList (LA.Node a b l) = (a,b):laToList l
           
         
     

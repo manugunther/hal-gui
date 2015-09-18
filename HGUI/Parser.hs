@@ -14,7 +14,7 @@ import qualified Equ.Parser as PEqu
 import Hal.Parser
 
 -- Imports de Hal-Gui
-import HGUI.ExtendedLang
+import HGUI.ExtendedLang hiding (snd)
 
 -- *** Comandos.
 -- |Comando simples.
@@ -177,11 +177,23 @@ extProgram = varinputs >>
 extEvalProgram :: ParserH ExtProgram
 extEvalProgram = varinputs >>
                  vardefs >>
-                 expsToEval >>= \toEval ->
+                 changePosEval <$> expsToEval >>= \toEval ->
                  eof >>
                  M.elems . pvars . stateUser <$> getParserState >>= \vars ->
                  return $ ExtEvalProg vars toEval
 
+changePosEval :: ExpsToEval -> ExpsToEval
+changePosEval [] = error "Imposible"
+changePosEval (e:es) = snd (foldl f (pe,[e]) es)
+    where pe :: CommPos
+          pe = case e of
+                    Left (p,_)  -> p
+                    Right (p,_) -> p
+          f :: (CommPos,ExpsToEval) -> ExpToEval -> (CommPos,ExpsToEval)
+          f (p,es) (Left (p',e))  = (p',es++[Left (p,e)])
+          f (p,es) (Right (p',e)) = (p',es++[Right (p,e)])
+              
+                 
 parseProgram :: ParserH ExtProgram
 parseProgram = choice $ map try [extProgram,extEvalProgram]
 

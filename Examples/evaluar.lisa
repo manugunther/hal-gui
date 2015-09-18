@@ -1,9 +1,13 @@
 
-vardef r: Int;
-vardef i: Int;
+varinput x : Int;
+varinput y : Int;
+varinput    b : Bool;
 
-evaluar 0-4;
+evaluar 3 + y;
 
-evaluar 3+4;
+evaluar x * 2;
 
-evaluar not True;
+evaluar y % 3;
+
+evaluar  b && (x % 2 = 0);
+
