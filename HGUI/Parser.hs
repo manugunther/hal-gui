@@ -1,6 +1,8 @@
 -- | Parser del Lenguaje extendido de LISA.
 module HGUI.Parser where
 
+import Language.Haskell.TH.Ppr ( bytesToString )
+import qualified Data.ByteString as B
 import qualified Data.Map as M
 import Control.Applicative ( (<$>) )
 
@@ -198,8 +200,9 @@ parseProgram :: ParserH ExtProgram
 parseProgram = choice $ map try [extProgram,extEvalProgram]
 
 -- | Función principal de parseo desde String
-parseExtPrgFromString :: String -> Either ParseError ExtProgram
-parseExtPrgFromString = runParser parseProgram initSt "" 
+parseExtPrgFromString :: B.ByteString -> Either ParseError ExtProgram
+parseExtPrgFromString = runParser parseProgram initSt "" .
+                                               bytesToString . B.unpack
     where initSt = PHalState { lvars = M.empty
                              , pvars = M.empty
                              , equPState = PEqu.initPExprState PEqu.UnusedParen
@@ -207,8 +210,8 @@ parseExtPrgFromString = runParser parseProgram initSt ""
 
 parseExtPrgFromFile :: FilePath -> IO ExtProgram
 parseExtPrgFromFile f = 
-    readFile f >>= return . parseExtPrgFromString >>=
+    B.readFile f >>= return . parseExtPrgFromString >>=
     either (error . show) return
 
 parseExtPrgFromFile' :: FilePath -> IO (Either ParseError ExtProgram)
-parseExtPrgFromFile' f = readFile f >>= return . parseExtPrgFromString 
+parseExtPrgFromFile' f = B.readFile f >>= return . parseExtPrgFromString 

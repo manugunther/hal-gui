@@ -5,12 +5,15 @@ import Graphics.UI.Gtk hiding (get)
 import Control.Monad.Trans.RWS
 import Control.Monad.IO.Class
 import Control.Monad
+import Control.Applicative
 
 import Control.Lens hiding (set)
 import qualified Control.Exception as C
 
 import qualified Data.Foldable as F
 import System.FilePath.Posix
+import Language.Haskell.TH.Ppr ( bytesToString )
+import qualified Data.ByteString as B
 import Data.Maybe (isJust,fromJust)
 import Data.Text hiding (take,init,drop)
 
@@ -75,7 +78,8 @@ dialogLoad label fileFilter action consoleView = do
             selected <- fileChooserGetFilename dialog
             F.mapM_ (\filepath -> 
                     let filename = dropExtension filepath in
-                        readFile (filename++".lisa") >>= \code ->
+                        bytesToString . B.unpack <$>
+                        B.readFile (filename++".lisa") >>= \code ->
                            action (Just $ pack filename) 
                                                   (Just (code,"")) >>
                                 printInfoMsgIO "Archivo cargado con éxito."
@@ -104,9 +108,16 @@ saveFile = getHGState >>= \st -> ask >>= \content ->
                             save fn codelisa
         where
             save:: FilePath -> String -> GuiMonad ()
-            save filename codelisa  = 
-                let filelisa = filename++".lisa" in
-                    io (writeFile filelisa codelisa)
+            save filename codelisa  = ask >>= \content ->
+                let filelisa = filename++".lisa"
+                    consoleTV = content ^. (gHalInfoConsole . infoConTView)
+                in
+                    io $
+                    C.catch (writeFile filelisa codelisa)
+                          (\e -> let err = show (e :: C.SomeException) in
+                             printErrorMsgIO ("Error leyendo archivo:\n" ++err) 
+                             consoleTV >>
+                             return ())
 
 -- | Guardado en, de un archivo. (esto sería guardar como no?, es decir saveAs)
 saveAtFile :: GuiMonad ()
@@ -172,7 +183,7 @@ compile = get >>= \st -> ask >>= \content ->
                       io (
                       C.catch 
                       (let file = fp++".lisa" in
-                                    readFile file >>= \code ->
+                                    B.readFile file >>= \code ->
                                     eval (parseCode consoleTV code) content st
                       )
                       (\e -> let err = show (e :: C.SomeException) in
@@ -182,7 +193,8 @@ compile = get >>= \st -> ask >>= \content ->
               )
               mfile
         
-    where parseCode consoleTV code =
+    where parseCode :: TextView -> B.ByteString -> GuiMonad Bool
+          parseCode consoleTV code =
             case parseExtPrgFromString code of
                 Left er -> io (printErrorMsgIO 
                               ("Error compilando código: " ++ show er) consoleTV)
