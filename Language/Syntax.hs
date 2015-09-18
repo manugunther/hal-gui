@@ -29,15 +29,13 @@ data BoolExpr = ConstB Bool             -- Constantes
               | Equal IntExpr IntExpr    -- Menor o igual
               | Less IntExpr IntExpr   -- Menor estricto
              
--- Las expresiones podrán ser enteras o booleanas
-data Expr = IExpr IntExpr 
-          | BExpr BoolExpr
 
 {- 
     Sentencias del lenguaje
 -}
 data Statement = Skip                      -- No hacer nada
-               | Assign Var Expr           -- Asignación de variable
+               | AssignB Var BoolExpr      -- Asignación de variable booleana
+               | AssignI Var IntExpr       -- Asignación de variable entera
                | Seq Statement Statement   -- Secuencia
                | If [(BoolExpr,Statement)] -- Condicional
                | Do BoolExpr Statement     -- Ciclo

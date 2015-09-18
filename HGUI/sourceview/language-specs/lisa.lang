@@ -21,8 +21,6 @@
 	      
 	      
               <context id="keywords" style-ref="keyword">
-		<prefix>(?&lt;!\%{symbolchar})</prefix>
-		<suffix>(?!\%{symbolchar})</suffix>
                 <keyword>varinput</keyword>
                 <keyword>vardef</keyword>
                 <keyword>while</keyword>
@@ -34,6 +32,7 @@
                 <keyword>od</keyword>
                 <keyword>skip</keyword>
                 <keyword>abort</keyword>
+                <keyword>evaluar</keyword>
 	      </context>
 	      
               <context id="assert" style-ref="assertion">

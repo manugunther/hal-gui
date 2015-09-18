@@ -7,8 +7,8 @@ import HGUI.Evaluation.EvalState ( StateTuple (..) )
 
 import qualified Language.Syntax as AS
 import qualified Language.Semantics as ASem
+import qualified Language.ListAssoc as LA
 
-import qualified Data.Map as M
 import Data.Text ( unpack )
 
 type VarToId = [StateTuple] -- M.Map AS.AS.VarName Identifier
@@ -63,10 +63,10 @@ lookupVar v (BoolVar ident _ : rest) | v == unpack (idName ident) = ident
 -- corresponda con el que deberia ser.
 syntaxToEC :: AS.Statement -> ExtComm -> VarToId -> ExtComm
 syntaxToEC AS.Skip (ExtSkip p) _ = ExtSkip p
-syntaxToEC (AS.Assign (AS.Var v AS.BoolT) (AS.BExpr e)) (ExtBAssig p _ _) m = 
+syntaxToEC (AS.AssignB (AS.Var v AS.BoolT) e) (ExtBAssig p _ _) m = 
                              ExtBAssig p (lookupVar v m) (syntaxToBE e m)
 
-syntaxToEC (AS.Assign (AS.Var v AS.IntT) (AS.IExpr e)) (ExtIAssig p _ _) m = 
+syntaxToEC (AS.AssignI (AS.Var v AS.IntT) e) (ExtIAssig p _ _) m = 
                              ExtIAssig p (lookupVar v m) (syntaxToIE e m)
 
 syntaxToEC (AS.Seq s1 s2) (ExtSeq s1' s2') m =
@@ -126,10 +126,10 @@ ieToSyntax (IBOp op e1 e2) =
 ecToSyntax :: ExtComm -> AS.Statement
 ecToSyntax (ExtSkip _) = AS.Skip
 ecToSyntax (ExtBAssig _ i e) = 
-    AS.Assign (AS.Var vari AS.BoolT) (AS.BExpr $ beToSyntax e)
+    AS.AssignB (AS.Var vari AS.BoolT) (beToSyntax e)
     where vari = unpack $ idName i
 ecToSyntax (ExtIAssig _ i e) = 
-    AS.Assign (AS.Var vari AS.IntT) (AS.IExpr $ ieToSyntax e)
+    AS.AssignI (AS.Var vari AS.IntT) (ieToSyntax e)
     where vari = unpack $ idName i
 ecToSyntax (ExtDo _ _ be s) =
     AS.Do (beToSyntax be) (ecToSyntax s)
@@ -140,24 +140,24 @@ ecToSyntax e = error $ "No existe esta sentencia en la sintaxis del proyecto: " 
             
 -- Traducción del estado de Hal al estado del proyecto
 stHalToSt :: [StateTuple] -> ASem.State
-stHalToSt = foldl f (M.empty,M.empty)
+stHalToSt = foldl f (LA.Empty,LA.Empty)
     where f :: ASem.State -> StateTuple -> ASem.State
           f (sti,stb) (IntVar i mint) = 
               let v = (unpack $ idName i)
               in case mint of
-                    Nothing -> (M.insert v ASem.defaultIntValue sti,stb)
-                    Just e  -> (M.insert v e sti,stb)
+                    Nothing -> (LA.la_agregar v ASem.defaultIntValue sti,stb)
+                    Just e  -> (LA.la_agregar v e sti,stb)
           f (sti,stb) (BoolVar i mbool) = 
               let v = (unpack $ idName i)
               in case mbool of
-                    Nothing -> (sti,M.insert v ASem.defaultBoolValue stb)
-                    Just e  -> (sti,M.insert v e stb)
+                    Nothing -> (sti,LA.la_agregar v ASem.defaultBoolValue stb)
+                    Just e  -> (sti,LA.la_agregar v e stb)
     
 stToStHal :: ASem.State -> VarToId -> [StateTuple]
 stToStHal (sti,stb) m = 
-    let stires = M.foldlWithKey fi [] sti
+    let stires = foldlWithKey fi [] sti
     in
-        M.foldlWithKey fb stires stb
+        foldlWithKey fb stires stb
     where fi :: [StateTuple] -> AS.VarName -> Int -> [StateTuple]
           fi st v i = let ident = lookupVar v m 
                       in
@@ -166,5 +166,9 @@ stToStHal (sti,stb) m =
           fb st v b = let ident = lookupVar v m
                       in
                           (BoolVar ident (Just b) : st)
+          foldlWithKey :: (c -> a -> b -> c) -> c -> LA.ListAssoc a b -> c
+          foldlWithKey f c LA.Empty        = c
+          foldlWithKey f c (LA.Node a b l) = f (foldlWithKey f c l) a b
+          
         
     

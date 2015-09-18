@@ -295,7 +295,7 @@ evalStepExtComm (ExtEval toEs) = do
         evalB :: Window -> AS.BoolExpr -> ASem.State ->
                  ProgState (Maybe Bool)
         evalB win be st = liftIO $
-                  catch (return $ Just $! ASem.semBExpr be st)
+                  catch (return $ Just $! ASem.evalBExpr be st)
                         (\(e :: SomeException) ->
                              showErrMsg win (show e) >>
                              return Nothing
@@ -303,7 +303,7 @@ evalStepExtComm (ExtEval toEs) = do
         evalI :: Window -> AS.IntExpr -> ASem.State ->
                  ProgState (Maybe Int)
         evalI win ie (st,_) = liftIO $
-                  catch (return $ Just $! ASem.semIExpr ie st)
+                  catch (return $ Just $! ASem.evalIExpr ie st)
                         (\(e :: SomeException) ->
                              showErrMsg win (show e) >>
                              return Nothing
@@ -326,7 +326,7 @@ evalStepExtComm comm = do
         evalSem :: Window -> AS.Statement -> ASem.State ->
                    ProgState (ASem.State,ASem.Continuation)
         evalSem win stmt st = liftIO $
-                  catch (return $ ASem.semStatement stmt st)
+                  catch (return $ ASem.evalStep stmt st)
                         (\(e :: SomeException) ->
                              showErrMsg win (show e) >>
                              return (st,ASem.Finish)
