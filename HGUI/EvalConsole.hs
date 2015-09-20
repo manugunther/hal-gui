@@ -56,6 +56,8 @@ configEvalButton = ask >>= \content -> do
             io $ textViewSetEditable tv True
             io $ widgetHideAll ebox
             io $ widgetHideAll evalstbox
+
+            activeToolBarButtons
         
         onActive :: GuiMonad ()
         onActive = ask >>= \content -> do
@@ -65,9 +67,28 @@ configEvalButton = ask >>= \content -> do
             
             _ <- if not c
                  then io (toggleToolButtonSetActive ebutton False) >> return ()
-                 else activateEvalFramework
+                 else activateEvalFramework >> deactiveToolBarButtons
             
             return ()
+
+
+activeToolBarButtons :: GuiMonad ()
+activeToolBarButtons = getHGState >>= \st -> io $ do
+                       let Just signals = st ^. gToolButtonsSignals
+                       
+                       signalUnblock $ signals ^. newId
+                       signalUnblock $ signals ^. openId
+                       signalUnblock $ signals ^. saveId
+                       signalUnblock $ signals ^. saveAtId
+
+deactiveToolBarButtons :: GuiMonad ()
+deactiveToolBarButtons = getHGState >>= \st -> io $ do
+                         let Just signals = st ^. gToolButtonsSignals
+                       
+                         signalBlock $ signals ^. newId
+                         signalBlock $ signals ^. openId
+                         signalBlock $ signals ^. saveId
+                         signalBlock $ signals ^. saveAtId
 
 activateEvalFramework :: GuiMonad ()
 activateEvalFramework = ask >>= \content -> getHGState >>= \st -> do

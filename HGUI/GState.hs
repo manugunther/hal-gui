@@ -26,18 +26,17 @@ data HalToolbar = HalToolbar { _evalButton :: ToggleToolButton
                              }
 $(makeLenses ''HalToolbar)
 
--- | Información sobre la lista de símbolos.
-data HalSymList = HalSymList { _gSymFrame    :: Frame
-                             , _gGoLeftBox   :: HBox
-                             , _gScrollW     :: ScrolledWindow
-                             , _gSymIconView :: IconView
-                             , _gGoRightBox  :: HBox
-                             }
-$(makeLenses ''HalSymList)
-
-
 data HalInfoConsole = HalInfoConsole { _infoConTView :: TextView }
 $(makeLenses ''HalInfoConsole)
+
+-- | Señales de los botones de nuevo, abrir, guardar, etc.
+data HalToolBarButtons = HalToolBarButtons
+                         { _newId    :: ConnectId ToolButton
+                         , _openId   :: ConnectId ToolButton
+                         , _saveId   :: ConnectId ToolButton
+                         , _saveAtId :: ConnectId ToolButton
+                         }
+$(makeLenses ''HalToolBarButtons)
 
 data HalCommConsole = HalCommConsole { _cEvalBox       :: VBox
                                      , _cEvalStateBox  :: VBox
@@ -75,13 +74,15 @@ $(makeLenses ''HGReader)
 -- | Tipo de mónada de estado, llevamos el environment de un modulo bien 
 -- chequeado y la info sobre la parte derecha de la interfaz, es decir, 
 -- la que contiene los campos de texto para escribir programas.
-data HGState = HGState { _gHalConsoleState :: Maybe ExecState
-                       , _gHalPrg          :: Maybe ExtProgram
-                       , _gCurrentText     :: SourceView
-                       -- El siguiente campo es el nombre del archivo sin la extensión.
+data HGState = HGState { _gHalConsoleState    :: Maybe ExecState
+                       , _gHalPrg             :: Maybe ExtProgram
+                       , _gCurrentText        :: SourceView
+                       -- El siguiente campo es el nombre del archivo
+                       -- sin la extensión.
                        -- Un archivo de Hal consistira de uno .lisa y uno .fun
-                       , _gFileName        :: Maybe FilePath
-                       , _gForkThread      :: Maybe ThreadId
+                       , _gFileName           :: Maybe FilePath
+                       , _gToolButtonsSignals :: Maybe HalToolBarButtons
+                       , _gForkThread         :: Maybe ThreadId
                        }
 $(makeLenses ''HGState)
 

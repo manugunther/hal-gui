@@ -73,6 +73,7 @@ makeGState xml = do
                               textcode
                               Nothing
                               Nothing
+                              Nothing
                               
         let gReader = HGReader halToolbarST
                                halEditorPaned
@@ -89,20 +90,29 @@ makeGState xml = do
 -- | Configura los botones de la barra, tales como abrir, cerrar, etc...
 configToolBarButtons :: Builder -> GuiMonad ()
 configToolBarButtons xml = ask >>= \content -> get >>= \st ->
-        io $ do
+        do
         
-        newFButton      <- bGetObject "newHFileButton"
-        openFButton     <- bGetObject "openHFileButton"
-        saveFButton     <- bGetObject "saveHFileButton"
-        saveAtFButton   <- bGetObject "saveHFileAtButton"
-        evaButton       <- bGetObject "evalButton"
+        newFButton      <- io $ bGetObject "newHFileButton"
+        openFButton     <- io $ bGetObject "openHFileButton"
+        saveFButton     <- io $ bGetObject "saveHFileButton"
+        saveAtFButton   <- io $ bGetObject "saveHFileAtButton"
+        evaButton       <- io $ bGetObject "evalButton"
         
-        void $ onTBClicked newFButton     (eval createNewFile content st)
-        void $ onTBClicked openFButton    (eval openFile content st)
-        void $ onTBClicked saveFButton    (eval saveFile content st)
-        void $ onTBClicked saveAtFButton  (eval saveAtFile content st)
-        void $ onTBClicked evaButton      (eval configEvalButton content st)
+        nId   <- io $ onTBClicked newFButton 
+                                     (eval createNewFile content st)
+        oId   <- io $ onTBClicked openFButton
+                                     (eval openFile content st)
+        sId   <- io $ onTBClicked saveFButton
+                                     (eval saveFile content st)
+        sAtId <- io $ onTBClicked saveAtFButton
+                                     (eval saveAtFile content st)
+        void   $ io $ onTBClicked evaButton
+                                     (eval configEvalButton content st)
         
+        let signals = HalToolBarButtons nId oId sId sAtId
+
+        updateHGState (gToolButtonsSignals .~ Just signals)
+
         return ()
     where
         onTBClicked = onToolButtonClicked
