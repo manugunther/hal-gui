@@ -351,11 +351,11 @@ nextCommand wc@(ExtDo _ _ b c) = do
 nextCommand (ExtIf _ cs) = evalif cs
     where 
           evalif [] = error 
-                      "Impossible: If con lista de guardas y comandos vacia."
+                      "Ninguna guarda es verdadera"
           evalif ((_,b,c):bcs) = do
                  let bc   = head bcs
                      cont = if length bcs == 0
-                            then Nothing
+                            then error "Ninguna guarda es verdadera"
                             else Just $ ExtIf (fst bc) bcs
                  vb <- evalBExp b
                  case vb of

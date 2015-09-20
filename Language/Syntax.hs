@@ -11,6 +11,7 @@ data Type = BoolT | IntT
 type VarName = String
     
 data Var = Var String Type
+    deriving Show
     
 {- Expresiones enteras -}
 data IntExpr = ConstI Int              -- Constantes
@@ -39,7 +40,7 @@ data Statement = Skip                      -- No hacer nada
                | Seq Statement Statement   -- Secuencia
                | If [(BoolExpr,Statement)] -- Condicional
                | Do BoolExpr Statement     -- Ciclo
-
+    deriving Show
                
                
 -- Instancia Show para las expresiones
