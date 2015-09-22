@@ -57,20 +57,7 @@ printMsg tagname msg = ask >>= \content -> io $ do
                        printMsg' tagname msg infoTV
 
 printMsg' :: TagName -> String -> TextView -> IO ()
-printMsg' tagname msg infoTV = do
+printMsg' _ msg infoTV = do
             infoBuf <- textViewGetBuffer infoTV
-
-            --titer <- textBufferGetEndIter infoBuf
-            --lineStart <- textIterGetLine titer
-                
             -- Ingresamos el texto en el buffer
-            putStrAtEnd infoBuf infoTV msg
-                
-            --titer' <- textBufferGetEndIter infoBuf
-            --lineEnd <- textIterGetLine titer'
-                
-            --start <- textBufferGetIterAtLine infoBuf lineStart
-            --end <- textBufferGetIterAtLine infoBuf lineEnd
-                
-            --textBufferApplyTagByName infoBuf tagname start end
-            widgetShowAll infoTV
+            putStrAtEnd infoBuf msg

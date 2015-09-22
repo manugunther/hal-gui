@@ -25,6 +25,7 @@ mainHalGui xml = do
                                  configToolBarButtons xml
                                  configInfoConsole
                                  eventsSourceView
+                                 eventsInfoConsole
                                  configEvalConsole
                              ) gReader gState
 
@@ -152,6 +153,19 @@ configWindow = ask >>= \content -> get >>= \stref ->
         forkQuit stref = readRef stref >>= \st ->
             let mthreadId = st ^. gForkThread in
             maybe (return ()) killThread mthreadId
+
+eventsInfoConsole :: GuiMonad ()
+eventsInfoConsole = ask >>= \content ->
+        let infoTV = content ^. gInfoConsole
+        in io $ void $
+           on infoTV sizeAllocate $
+            \_ -> do
+            Just vp     <- widgetGetParent infoTV
+            Just infoSW <- widgetGetParent vp
+            vAdj   <- scrolledWindowGetVAdjustment $ castToScrolledWindow infoSW
+            pSize  <- adjustmentGetPageSize vAdj
+            pUpper <- adjustmentGetUpper vAdj
+            set vAdj [ adjustmentValue := pUpper - pSize ]
 
 eventsSourceView :: GuiMonad ()
 eventsSourceView = ask >>= \content ->

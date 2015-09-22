@@ -95,8 +95,9 @@ syntaxToEC _ _ _ = error $ unwords [ "La definición de continuación de"
 contToMEC :: ASem.Continuation -> Maybe ExtComm -> VarToId -> Maybe ExtComm
 contToMEC (ASem.ToExec stmt) (Just comm) m = Just (syntaxToEC stmt comm m)
 contToMEC (ASem.Finish) Nothing _ = Nothing
-contToMEC cont mec _ = error ("La definición de continuación de ejecución "
-                        ++ "no es la correcta.")
+contToMEC _ _ _ = error $ unwords [ "La definición de continuación de ejecución"
+                                  , "no es la correcta."
+                                  ]
 
 -- Traducción del lenguaje de Hal al del proyecto                        
 beToSyntax :: BExp -> AS.BoolExpr
