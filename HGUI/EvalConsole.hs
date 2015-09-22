@@ -330,14 +330,14 @@ evalStepDown = getHGState >>= \st -> ask >>= \content -> do
     
     flagSt <- io $ newEmptyMVar
     
-    mnexecComm <- io $ catch ( return $ nexecutedTracePrg execSt )
+    mnexecComm <- io $ catch ( return $! nexecutedTracePrg execSt )
                              (\(err :: SomeException) ->
                                     showErrMsg win (show err) >>
                                     return Nothing
                              )
     
     maybe (takeInputs prgSt flagSt)
-          (const $ io $ putMVar flagSt (Just prgSt)) mexecComm    
+          (const $ io $ putMVar flagSt (Just prgSt)) mexecComm
 
     mPrgSt <- io $ takeMVar flagSt
     
@@ -378,7 +378,6 @@ evalStepDown = getHGState >>= \st -> ask >>= \content -> do
                                                      flip paintLineIO content
                                                ) headC
                                        ) (\(err :: SomeException) ->
-                                               putStrLn "PaintLine" >>
                                                showErrMsg win (show err) >>
                                                return ()
                                          )
