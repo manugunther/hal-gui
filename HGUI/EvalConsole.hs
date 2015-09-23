@@ -44,7 +44,7 @@ configEvalButton = ask >>= \content -> do
                 tv          = content ^. gTextCode
                 forkFlag    = content ^. gHalForkFlag
                 mthreadId   = st ^. gForkThread
-                Just execSt = st ^. gHalConsoleState
+                mexecSt = st ^. gHalConsoleState
             
             void $ io $ tryTakeMVar forkFlag
             
@@ -54,7 +54,8 @@ configEvalButton = ask >>= \content -> do
             
             cleanPaintLine $ castToTextView tv
 
-            io $ mapM_ (removeAllMarks tv) (prgBreaks execSt)
+            maybe (return ())
+                  (io . mapM_ (removeAllMarks tv) . prgBreaks) mexecSt
             
             io $ textViewSetEditable tv True
             io $ widgetHideAll ebox
