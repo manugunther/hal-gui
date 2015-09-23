@@ -75,7 +75,6 @@ configEvalButton = ask >>= \content -> do
             
             return ()
 
-
 activeToolBarButtons :: GuiMonad ()
 activeToolBarButtons = getHGState >>= \st -> io $ do
                        let Just signals = st ^. gToolButtonsSignals

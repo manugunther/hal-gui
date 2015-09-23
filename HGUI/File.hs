@@ -176,7 +176,7 @@ compile :: GuiMonad Bool
 compile = get >>= \st -> ask >>= \content ->
           getHGState >>= \gst ->
         do
-        let consoleTV = content ^. (gHalInfoConsole . infoConTView)
+        let consoleTV = content ^. gInfoConsole
             mfile = gst ^. gFileName
         maybe (saveAtFile >> return False)
               (\fp -> saveFile >>
