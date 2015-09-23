@@ -20,6 +20,7 @@ data ExecState = ExecState { executedTracePrg  :: Maybe ExtComm
                            , prgState          :: State
                            , hPrgState         :: HistState
                            , prgBreaks         :: [Int]
+                           , validLines        :: [Int]
                            }
 
 makeExecState :: ExtProgram -> ExecState
@@ -28,69 +29,66 @@ makeExecState (ExtProg vars comms) = ExecState Nothing
                                                (fillState initState vars)
                                                []
                                                []
+                                               (getCommLines comms)
 makeExecState (ExtEvalProg vars eteval) = ExecState Nothing 
                                                (Just $ ExtEval eteval)
                                                (fillState initState vars)
                                                []
                                                []
+                                               (getCommLines $ ExtEval eteval)
 
 makeExecStateWithPre :: ExtProgram -> ExecState
-makeExecStateWithPre (ExtProg vars comms) = 
-        ExecState Nothing (Just comms) (fillState initState vars) [] []
-makeExecStateWithPre (ExtEvalProg vars toEval) = 
-        ExecState Nothing (Just $ ExtEval toEval)
-                          (fillState initState vars) [] []
+makeExecStateWithPre (ExtProg vars comms) =
+      ExecState Nothing (Just comms)
+                (fillState initState vars) [] [] (getCommLines comms)
+makeExecStateWithPre (ExtEvalProg vars toEval) =
+      ExecState Nothing (Just $ ExtEval toEval)
+                (fillState initState vars) [] [] (getCommLines $ ExtEval toEval)
 
 restartExecSt :: ExecState -> ExtProgram -> ExecState
-restartExecSt (ExecState _ _ st _ _) (ExtProg _ c) = 
-    ExecState Nothing (Just c) (fillState initState $ takeIdentifiers st) [] []
-restartExecSt (ExecState _ _ st _ _) (ExtEvalProg _ ete) =
+restartExecSt (ExecState _ _ st _ _ vl) (ExtProg _ c) =
+    ExecState Nothing (Just c)
+                      (fillState initState $ takeIdentifiers st) [] [] vl
+restartExecSt (ExecState _ _ st _ _ vl) (ExtEvalProg _ ete) =
     ExecState Nothing (Just $ ExtEval ete) 
-                      (fillState initState $ takeIdentifiers st) [] []
+                      (fillState initState $ takeIdentifiers st) [] [] vl
 
 undoUpdateExecState :: ExecState -> ExtComm -> HistState -> State -> ExecState
 undoUpdateExecState execSt c hprgst st = 
         case execSt of
-            ExecState mc (Just c') _ _ bs ->
-                ExecState mc (Just $ ExtSeq c c') st hprgst bs
-            ExecState mc Nothing _ _ bs ->
-                ExecState mc (Just $ c) st hprgst bs
+            ExecState mc (Just c') _ _ bs vl ->
+                ExecState mc (Just $ ExtSeq c c') st hprgst bs vl
+            ExecState mc Nothing _ _ bs vl ->
+                ExecState mc (Just $ c) st hprgst bs vl
 
 updateExecState :: ExecState -> (Maybe ExtComm,Maybe ExtComm) -> State ->
                    State -> ExecState
 updateExecState execSt (mc,mc') oldst st =
-        case (execSt,mc) of
-            (ExecState Nothing _ _ hstprg bs,Nothing) -> 
-                    ExecState mc mc' st hstprg bs
-            (ExecState Nothing _ _ hstprg bs,Just c) -> 
-                    ExecState mc mc' st ((c,oldst):hstprg) bs
-            (ExecState (Just exec) _ _ hstprg bs,Just c) -> 
-                    ExecState (Just $ ExtSeq exec c) mc' st ((c,oldst):hstprg) bs
-            (ExecState (Just exec) _ _ hstprg bs,Nothing) -> 
-                    ExecState (Just exec) mc' st hstprg bs
+    case (execSt,mc) of
+         (ExecState Nothing _ _ hstprg bs vl,Nothing) ->
+             ExecState mc mc' st hstprg bs vl
+         (ExecState Nothing _ _ hstprg bs vl,Just c) ->
+             ExecState mc mc' st ((c,oldst):hstprg) bs vl
+         (ExecState (Just exec) _ _ hstprg bs vl,Just c) ->
+             ExecState (Just $ ExtSeq exec c) mc' st ((c,oldst):hstprg) bs vl
+         (ExecState (Just exec) _ _ hstprg bs vl,Nothing) ->
+             ExecState (Just exec) mc' st hstprg bs vl
 
 addBreak :: ExecState -> Int -> Maybe ExecState
-addBreak execSt b = if b  `elem`   (getValidLines execSt)
-                       then Just $ execSt {prgBreaks = b : prgBreaks execSt}
+addBreak execSt b = if b  `elem`   (validLines execSt)
+                       then Just $ execSt
+                                   {prgBreaks = b : prgBreaks execSt}
                        else Nothing
 
 delBreak :: ExecState -> Int -> Maybe ExecState
-delBreak execSt b = if b  `elem`   (getValidLines execSt)
-                       then Just $ execSt {prgBreaks = filter (b/=) $ prgBreaks execSt}
+delBreak execSt b = if b  `elem`   (validLines execSt)
+                       then Just $ execSt 
+                                   {prgBreaks = filter (b/=) $ prgBreaks execSt}
                        else Nothing
 
-getValidLines :: ExecState -> [Int]
-getValidLines (ExecState mc mc' _ _ _) = case (mc,mc') of
-                                           (Nothing,Nothing) -> []
-                                           (Just c,Nothing)  -> getCommLines c
-                                           (Nothing,Just c') -> getCommLines c'
-                                           (Just c,Just c')  -> getCommLines c 
-                                                                ++ 
-                                                                getCommLines c'
-
 headNExecComm :: ExecState -> Maybe ExtComm
-headNExecComm (ExecState _ Nothing _ _ _)      = Nothing
-headNExecComm (ExecState _ (Just comms) _ _ _) = Just $ takeHead comms
+headNExecComm (ExecState _ Nothing _ _ _ _)      = Nothing
+headNExecComm (ExecState _ (Just comms) _ _ _ _) = Just $ takeHead comms
     where
         takeHead :: ExtComm -> ExtComm
         takeHead (ExtSeq c _) = takeHead c
