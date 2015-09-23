@@ -77,21 +77,34 @@ configEvalButton = ask >>= \content -> do
 
 activeToolBarButtons :: GuiMonad ()
 activeToolBarButtons = getHGState >>= \st -> io $ do
-                       let Just signals = st ^. gToolButtonsSignals
+                       let Just buttons = st ^. gToolButtons
+                           Just mbuttons = st ^. gMenuButtons
                        
-                       signalUnblock $ signals ^. newId
-                       signalUnblock $ signals ^. openId
-                       signalUnblock $ signals ^. saveId
-                       signalUnblock $ signals ^. saveAtId
+                       widgetSetSensitive (buttons ^. newId) True
+                       widgetSetSensitive (buttons ^. openId) True
+                       widgetSetSensitive (buttons ^. saveId) True
+                       widgetSetSensitive (buttons ^. saveAtId) True
+
+                       widgetSetSensitive (mbuttons ^. mnewId) True
+                       widgetSetSensitive (mbuttons ^. mopenId) True
+                       widgetSetSensitive (mbuttons ^. msaveId) True
+                       widgetSetSensitive (mbuttons ^. msaveAtId) True
 
 deactiveToolBarButtons :: GuiMonad ()
 deactiveToolBarButtons = getHGState >>= \st -> io $ do
-                         let Just signals = st ^. gToolButtonsSignals
+                         let Just buttons  = st ^. gToolButtons
+                             Just mbuttons = st ^. gMenuButtons
                        
-                         signalBlock $ signals ^. newId
-                         signalBlock $ signals ^. openId
-                         signalBlock $ signals ^. saveId
-                         signalBlock $ signals ^. saveAtId
+                         widgetSetSensitive (buttons ^. newId) False
+                         widgetSetSensitive (buttons ^. openId) False
+                         widgetSetSensitive (buttons ^. saveId) False
+                         widgetSetSensitive (buttons ^. saveAtId) False
+
+                         widgetSetSensitive (mbuttons ^. mnewId) False
+                         widgetSetSensitive (mbuttons ^. mopenId) False
+                         widgetSetSensitive (mbuttons ^. msaveId) False
+                         widgetSetSensitive (mbuttons ^. msaveAtId) False
+
 
 activateEvalFramework :: GuiMonad ()
 activateEvalFramework = ask >>= \content -> getHGState >>= \st -> do
@@ -120,15 +133,22 @@ startStateView :: VBox -> State -> GuiMonad ()
 startStateView stBox st = io $ do
             containerForall stBox (containerRemove stBox)
             
-            mapM_ fillStBox $ takeIdentifiers st
+            mapM_ fillStBox $ vars st
             
             return ()
     where
-        fillStBox :: Identifier -> IO ()
-        fillStBox i = do
+        fillStBox :: StateTuple -> IO ()
+        fillStBox (IntVar  i (Just vi)) = fillStBox' i (show vi)
+        fillStBox (BoolVar b (Just vb)) = fillStBox' b (show vb)
+        fillStBox _ = error $ unwords [ "Imposible: startStateView, el estado"
+                                      , "siempre tiene las variables"
+                                      , "inicializadas"
+                                      ]
+        fillStBox' :: Identifier -> String -> IO ()
+        fillStBox' i vi = do
                 hb  <- hBoxNew False 2
                 vl  <- labelNew $ Just $ show i ++ " ="
-                vl' <- labelNew $ Just "Sin valor"
+                vl' <- labelNew $ Just vi
                 boxPackStart hb vl PackNatural 2
                 boxPackStart hb vl' PackNatural 2
                 set vl [ miscXalign := 0 

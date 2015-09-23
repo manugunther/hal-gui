@@ -31,12 +31,20 @@ $(makeLenses ''HalInfoConsole)
 
 -- | Señales de los botones de nuevo, abrir, guardar, etc.
 data HalToolBarButtons = HalToolBarButtons
-                         { _newId    :: ConnectId ToolButton
-                         , _openId   :: ConnectId ToolButton
-                         , _saveId   :: ConnectId ToolButton
-                         , _saveAtId :: ConnectId ToolButton
+                         { _newId    :: ToolButton
+                         , _openId   :: ToolButton
+                         , _saveId   :: ToolButton
+                         , _saveAtId :: ToolButton
                          }
 $(makeLenses ''HalToolBarButtons)
+
+data HalMenuButtons = HalMenuButtons
+                      { _mnewId    :: MenuItem
+                      , _mopenId   :: MenuItem
+                      , _msaveId   :: MenuItem
+                      , _msaveAtId :: MenuItem
+                      }
+$(makeLenses ''HalMenuButtons)
 
 data HalCommConsole = HalCommConsole { _cEvalBox       :: VBox
                                      , _cEvalStateBox  :: VBox
@@ -80,9 +88,10 @@ data HGState = HGState { _gHalConsoleState    :: Maybe ExecState
                        -- El siguiente campo es el nombre del archivo
                        -- sin la extensión.
                        -- Un archivo de Hal consistira de uno .lisa y uno .fun
-                       , _gFileName           :: Maybe FilePath
-                       , _gToolButtonsSignals :: Maybe HalToolBarButtons
-                       , _gForkThread         :: Maybe ThreadId
+                       , _gFileName    :: Maybe FilePath
+                       , _gToolButtons :: Maybe HalToolBarButtons
+                       , _gMenuButtons :: Maybe HalMenuButtons
+                       , _gForkThread  :: Maybe ThreadId
                        }
 $(makeLenses ''HGState)
 

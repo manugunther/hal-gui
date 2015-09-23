@@ -141,7 +141,7 @@ initState :: State
 initState = makeState []
 
 makeState :: [StateTuple] -> State
-makeState = State 
+makeState = State
 
 makePrgState :: [(Identifier,EitherBI)] -> State
 makePrgState = makeState . map (\(i,ev) -> 

@@ -75,6 +75,7 @@ makeGState xml = do
                               Nothing
                               Nothing
                               Nothing
+                              Nothing
                               
         let gReader = HGReader halToolbarST
                                halEditorPaned
@@ -99,20 +100,18 @@ configToolBarButtons xml = ask >>= \content -> get >>= \st ->
         saveAtFButton   <- io $ bGetObject "saveHFileAtButton"
         evaButton       <- io $ bGetObject "evalButton"
         
-        nId   <- io $ onTBClicked newFButton 
-                                     (eval createNewFile content st)
-        oId   <- io $ onTBClicked openFButton
-                                     (eval openFile content st)
-        sId   <- io $ onTBClicked saveFButton
-                                     (eval saveFile content st)
-        sAtId <- io $ onTBClicked saveAtFButton
-                                     (eval saveAtFile content st)
-        void   $ io $ onTBClicked evaButton
-                                     (eval configEvalButton content st)
+        void $ io $ onTBClicked newFButton (eval createNewFile content st)
+        void $ io $ onTBClicked openFButton (eval openFile content st)
+        void $ io $ onTBClicked saveFButton (eval saveFile content st)
+        void $ io $ onTBClicked saveAtFButton (eval saveAtFile content st)
+        void $ io $ onTBClicked evaButton (eval configEvalButton content st)
         
-        let signals = HalToolBarButtons nId oId sId sAtId
+        let buttons = HalToolBarButtons newFButton
+                                        openFButton
+                                        saveFButton
+                                        saveAtFButton
 
-        updateHGState (gToolButtonsSignals .~ Just signals)
+        updateHGState (gToolButtons .~ Just buttons)
 
         return ()
     where
@@ -121,20 +120,27 @@ configToolBarButtons xml = ask >>= \content -> get >>= \st ->
 
 configMenuBarButtons :: Builder -> GuiMonad ()
 configMenuBarButtons xml = ask >>= \content -> get >>= \st ->
-            io $ do
+            do
             let window = content ^. gHalWindow
             
-            newB    <- builderGetObject xml castToMenuItem "newButton"
-            openB   <- builderGetObject xml castToMenuItem "openButton"
-            saveB   <- builderGetObject xml castToMenuItem "saveButton"
-            saveAsB <- builderGetObject xml castToMenuItem "saveAsButton"
-            quitB   <- builderGetObject xml castToMenuItem "quitButton"
+            newB    <- io $ builderGetObject xml castToMenuItem "newButton"
+            openB   <- io $ builderGetObject xml castToMenuItem "openButton"
+            saveB   <- io $ builderGetObject xml castToMenuItem "saveButton"
+            saveAsB <- io $ builderGetObject xml castToMenuItem "saveAsButton"
+            quitB   <- io $ builderGetObject xml castToMenuItem "quitButton"
             
-            _ <- onActivateLeaf newB    $ eval createNewFile    content st
-            _ <- onActivateLeaf openB   $ eval openFile         content st
-            _ <- onActivateLeaf saveB   $ eval saveFile         content st
-            _ <- onActivateLeaf saveAsB $ eval saveAtFile       content st
-            _ <- onActivateLeaf quitB   $ widgetDestroy window
+            _ <- io $ onActivateLeaf newB    $ eval createNewFile    content st
+            _ <- io $ onActivateLeaf openB   $ eval openFile         content st
+            _ <- io $ onActivateLeaf saveB   $ eval saveFile         content st
+            _ <- io $ onActivateLeaf saveAsB $ eval saveAtFile       content st
+            _ <- io $ onActivateLeaf quitB   $ widgetDestroy window
+
+            let buttons = HalMenuButtons newB
+                                         openB
+                                         saveB
+                                         saveAsB
+
+            updateHGState (gMenuButtons .~ Just buttons)
             
             return ()
 

@@ -65,7 +65,7 @@ printMsg' tagname msg infoTV = do
                 
             -- Ingresamos el texto en el buffer
             putStrAtEnd infoBuf msg
-                
+            
             titer' <- textBufferGetEndIter infoBuf
             lineEnd <- textIterGetLine titer'
                 
