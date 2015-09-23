@@ -39,11 +39,12 @@ configEvalButton = ask >>= \content -> do
     where
         onDeactive :: GuiMonad ()
         onDeactive = ask >>= \content -> getHGState >>= \st -> do
-            let ebox      = content ^. (gHalCommConsole . cEvalBox)
-                evalstbox = content ^. (gHalCommConsole . cEvalStateBox)
-                tv        = content ^. gTextCode
-                forkFlag  = content ^. gHalForkFlag
-                mthreadId = st ^. gForkThread
+            let ebox        = content ^. (gHalCommConsole . cEvalBox)
+                evalstbox   = content ^. (gHalCommConsole . cEvalStateBox)
+                tv          = content ^. gTextCode
+                forkFlag    = content ^. gHalForkFlag
+                mthreadId   = st ^. gForkThread
+                Just execSt = st ^. gHalConsoleState
             
             void $ io $ tryTakeMVar forkFlag
             
@@ -52,6 +53,8 @@ configEvalButton = ask >>= \content -> do
             io $ maybe (return ()) killThread mthreadId
             
             cleanPaintLine $ castToTextView tv
+
+            io $ mapM_ (removeAllMarks tv) (prgBreaks execSt)
             
             io $ textViewSetEditable tv True
             io $ widgetHideAll ebox
