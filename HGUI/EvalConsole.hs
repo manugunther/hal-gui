@@ -361,7 +361,7 @@ evalStepDown = getHGState >>= \st -> ask >>= \content -> do
     
     maybe (takeInputs prgSt flagSt)
           (const $ io $ putMVar flagSt (Just prgSt)) mexecComm
-
+    
     mPrgSt <- io $ takeMVar flagSt
     
     case mPrgSt of
@@ -641,7 +641,7 @@ evalRestart :: GuiMonad ()
 evalRestart = ask >>= \content -> getHGState >>= \st -> do
               let Just execSt = st ^. gHalConsoleState
                   Just prg    = st ^. gHalPrg
-                  execSt'     = restartExecSt execSt prg
+                  execSt'     = makeExecStateWithPre prg
                   headC       = headNExecComm execSt'
                   tv          = content ^. gTextCode
 
