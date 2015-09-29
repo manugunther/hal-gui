@@ -27,7 +27,7 @@ data BoolExpr = ConstB Bool             -- Constantes
               | And BoolExpr BoolExpr  -- Conjunción
               | Or BoolExpr BoolExpr   -- Disjunción
               | Not BoolExpr           -- Negación
-              | Equal IntExpr IntExpr    -- Menor o igual
+              | Equal IntExpr IntExpr  -- Igual
               | Less IntExpr IntExpr   -- Menor estricto
              
 
