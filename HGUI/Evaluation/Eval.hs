@@ -318,7 +318,7 @@ evalStepExtComm comm = do
             st          = stHalToSt stateTuples
             
         (st',cont)   <- evalSem win stmt st
-        let stateTuples' = stToStHal st' stateTuples
+        stateTuples' <- convertState win st' stateTuples
         
         expectedN <- nextCommand comm
         let next = contToMEC cont expectedN stateTuples
@@ -326,6 +326,13 @@ evalStepExtComm comm = do
         ST.put (State { vars = stateTuples' },win,ctv)
         return $ Just (Just undefined,next)
     where
+        convertState :: Window -> ASem.State -> VarToId -> ProgState [StateTuple]
+        convertState win st stt = liftIO $
+                  catch (return $! stToStHal st stt)
+                        (\(e :: SomeException) ->
+                             showErrMsg win (show e) >>
+                             return []
+                        )
         evalSem :: Window -> AS.Statement -> ASem.State ->
                    ProgState (ASem.State,ASem.Continuation)
         evalSem win stmt st = liftIO $
